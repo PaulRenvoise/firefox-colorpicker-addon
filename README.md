@@ -12,7 +12,7 @@ finger. Firefox for iOS does not support Firefox WebExtensions.
 ## Hold to average
 
 A normal click or tap samples one screenshot pixel. Hold for more than **1 second**
-to expand the region by one Manhattan-distance step every **150 ms**, up to **10
+to expand the region by one Manhattan-distance step every **500 ms**, up to **10
 steps** (221 pixels away from image edges). The first step includes the center and
 its four immediate neighbors. Diagonals enter on the second step because each
 diagonal costs two orthogonal moves. The preview outlines the selected region and

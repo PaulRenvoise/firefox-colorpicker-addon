@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { averageColor, imagePoint, radiusForHold, selectedPixels } from "../src/sampling.js";
 
-test("hold stays at one pixel for a second, then grows to ten iterations", () => {
+test("hold waits one second, then adds a step every 500 ms up to ten iterations", () => {
   for (const elapsed of [0, 999, 1000]) assert.equal(radiusForHold(elapsed), 0);
   assert.equal(radiusForHold(1001), 1);
-  assert.equal(radiusForHold(1150), 1);
-  assert.equal(radiusForHold(1151), 2);
-  assert.equal(radiusForHold(2351), 10);
+  assert.equal(radiusForHold(1500), 1);
+  assert.equal(radiusForHold(1501), 2);
+  assert.equal(radiusForHold(5500), 9);
+  assert.equal(radiusForHold(5501), 10);
   assert.equal(radiusForHold(60_000), 10);
 });
 
