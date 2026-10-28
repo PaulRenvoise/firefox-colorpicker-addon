@@ -1,0 +1,25 @@
+{
+  "name": "firefox-colorpicker-addon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A Firefox color picker with a magnifier and expanding pixel averages.",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test tests/*.test.js",
+    "test:browser": "node scripts/build.js && node --test --test-concurrency=1 tests/browser/*.test.js",
+    "test:android": "node scripts/build.js && node --test --test-concurrency=1 tests/android/*.test.js",
+    "lint": "node scripts/build.js && web-ext lint --source-dir dist --warnings-as-errors",
+    "start": "node scripts/build.js && web-ext run --source-dir dist",
+    "start:android": "node scripts/build.js && web-ext run --source-dir dist --target firefox-android",
+    "package": "node scripts/build.js && web-ext build --source-dir dist --artifacts-dir artifacts --overwrite-dest"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "selenium-webdriver": "^4.51.0",
+    "web-ext": "^10.8.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

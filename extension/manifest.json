@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Pipette",
+  "version": "0.1.0",
+  "description": "Pick a color, or hold to average a growing area. Release to copy its HEX value.",
+  "permissions": ["activeTab", "scripting", "clipboardWrite", "notifications"],
+  "background": { "scripts": ["background.js"] },
+  "action": {
+    "default_title": "Pick a color",
+    "default_icon": { "16": "icons/pipette.svg", "32": "icons/pipette.svg" }
+  },
+  "icons": { "48": "icons/pipette.svg", "96": "icons/pipette.svg" },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+Y" },
+      "description": "Pick a color"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "@pipette.paulrenvoise",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": { "required": ["none"] }
+    },
+    "gecko_android": { "strict_min_version": "142.0" }
+  }
+}

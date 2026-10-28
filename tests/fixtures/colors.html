@@ -1,0 +1,13 @@
+<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;background:#123456}canvas{display:block;position:fixed;inset:0}textarea{position:fixed;right:0;bottom:0;width:100px;height:40px}</style>
+<canvas></canvas><textarea aria-label="Paste target"></textarea>
+<script>
+window.pageClicks=0; document.addEventListener('click',()=>window.pageClicks++);
+document.addEventListener('pointerdown',e=>window.lastPointer={x:e.clientX,y:e.clientY},true);
+window.paint = (pattern=false) => {
+ const canvas=document.querySelector('canvas'),dpr=devicePixelRatio;
+ canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;
+ canvas.style.width=canvas.width/dpr+'px';canvas.style.height=canvas.height/dpr+'px';
+ const ctx=canvas.getContext('2d');ctx.fillStyle=pattern?'#FF0000':'#123456';ctx.fillRect(0,0,canvas.width,canvas.height);
+ if(pattern){ctx.fillStyle='#0000FF';ctx.fillRect(Math.floor(200*dpr),Math.floor(200*dpr),1,1)}
+};paint();</script>
