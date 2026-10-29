@@ -139,7 +139,7 @@ locally. There are no analytics or network calls.
 - `src/background.js`: toolbar activation, tab capture, clipboard, and icon feedback.
 - `src/sampling.js`: hold timing, pixel selection, coordinate mapping, and averaging.
 - `src/settings.js`: shared defaults, validation, and local preference storage.
-- `src/options.js`: settings form loading, saving, and restoring defaults.
+- `src/settings-page.js`: settings form loading, saving, and restoring defaults.
 - `src/content/`: pointer lifecycle, isolated UI, magnifier, and viewport checks.
 - `extension/`: manifest, SVG icons, and settings page markup and styles.
 - `scripts/build.js`: bundles source and copies extension assets into `dist/`.

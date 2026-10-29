@@ -294,7 +294,7 @@ test("settings persist, validate input, and configure all three sampling shapes"
   const settingsHandle = (await driver.getAllWindowHandles()).find((handle) => !handles.includes(handle));
   await driver.switchTo().window(settingsHandle);
   const settingsUrl = await driver.getCurrentUrl();
-  assert.match(settingsUrl, /^moz-extension:.*\/options\.html$/);
+  assert.match(settingsUrl, /^moz-extension:.*\/settings\.html$/);
   const ready = async () => driver.wait(until.elementIsEnabled(await driver.findElement(By.id("initial-hold"))), 5000);
   await ready();
   assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1500");

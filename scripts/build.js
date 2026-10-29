@@ -5,7 +5,7 @@ await rm("dist", { recursive: true, force: true });
 await mkdir("dist", { recursive: true });
 await cp("extension", "dist", { recursive: true });
 await build({
-  entryPoints: { background: "src/background.js", content: "src/content/index.js", options: "src/options.js" },
+  entryPoints: { background: "src/background.js", content: "src/content/index.js", settings: "src/settings-page.js" },
   outdir: "dist",
   bundle: true,
   format: "iife",
