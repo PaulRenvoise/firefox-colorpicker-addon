@@ -38,9 +38,10 @@ release Space to sample with the same averaging behavior.
 
 ## Settings
 
-Click the **gear** beside the picker's close button, or open Pipette's preferences
-in Firefox's add-on manager. The settings page works in its own tab on desktop
-and Android:
+**Right-click while the picker is active** to open settings, or open Pipette's
+preferences in Firefox's add-on manager. On touchscreens, use the add-on settings;
+holding your finger continues to average colors. The settings page opens in its
+own tab:
 
 - **Initial hold time:** milliseconds before growth begins; default **1500 ms**.
   Accepts whole numbers from 0 to 60000. Zero starts averaging immediately on press.

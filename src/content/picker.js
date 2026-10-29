@@ -16,23 +16,27 @@ export class Picker {
     this.busy = false;
     this.closed = false;
     this.completed = false;
-    this.view = new PickerView(image, viewport, this.settings.shape, {
-      cancel: () => this.destroy(),
-      openSettings: () => {
-        this.destroy();
-        browser.runtime.sendMessage({ type: "pipette:settings" }).catch((error) => console.warn("Pipette settings unavailable:", error));
-      },
-    });
+    this.view = new PickerView(image, viewport, this.settings.shape, () => this.destroy());
 
     this.listen(this.view.surface, "pointerdown", (event) => this.pointerDown(event));
     this.listen(this.view.surface, "pointermove", (event) => this.pointerMove(event));
     this.listen(this.view.surface, "pointerup", (event) => this.pointerUp(event));
     this.listen(this.view.surface, "pointercancel", () => this.cancelHold());
     this.listen(this.view.surface, "lostpointercapture", () => this.cancelHold());
+    this.listen(this.view.surface, "contextmenu", (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.composedPath().includes(this.view.closeButton)) return;
+      // Touch long presses belong to averaging, even if the browser first
+      // cancelled the pointer before emitting a native context-menu event.
+      if (this.pointerType === "touch" || this.busy || this.completed) return;
+      this.destroy();
+      browser.runtime.sendMessage({ type: "pipette:settings" }).catch((error) => console.warn("Pipette settings unavailable:", error));
+    });
     // Suppress native long-press menus, text selection, drag, and page clicks.
-    for (const type of ["contextmenu", "dragstart", "selectstart", "click", "auxclick", "wheel", "touchmove"]) {
+    for (const type of ["dragstart", "selectstart", "click", "auxclick", "wheel", "touchmove"]) {
       this.listen(this.view.surface, type, (event) => {
-        if (this.view.controls.some((control) => event.composedPath().includes(control))) return;
+        if (event.composedPath().includes(this.view.closeButton)) return;
         event.preventDefault();
         event.stopImmediatePropagation();
       }, { passive: false });
@@ -70,10 +74,11 @@ export class Picker {
   }
 
   pointerDown(event) {
-    if (this.view.controls.some((control) => event.composedPath().includes(control))) return;
+    if (event.composedPath().includes(this.view.closeButton)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if (this.busy || this.completed) return;
+    this.pointerType = event.pointerType;
     if (!event.isPrimary) { this.cancelHold(); return; }
     if (event.button !== 0 || this.pointerId !== null) return;
     this.updatePoint(event);
@@ -154,7 +159,7 @@ export class Picker {
       this.destroy();
       return;
     }
-    if (this.view.controls.includes(this.view.surface.getRootNode().activeElement)) return;
+    if (this.view.surface.getRootNode().activeElement === this.view.closeButton) return;
     const movement = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
     if (movement && !this.busy && !this.completed) {
       event.preventDefault();

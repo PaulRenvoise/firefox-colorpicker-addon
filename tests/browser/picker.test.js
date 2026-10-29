@@ -227,7 +227,12 @@ test("touch hold expands the region and a cancelled touch never copies", async (
   await driver.actions().insert(finger, finger.move({ x: 200, y: 200, duration: 0 }), finger.press()).perform();
   const progress = await waitForStep(root, 1);
   const surface = await root.findElement(By.css(".surface"));
+  const handles = await driver.getAllWindowHandles();
+  const touchContextMenu = "arguments[0].dispatchEvent(new PointerEvent('contextmenu', {bubbles:true,cancelable:true,pointerType:'touch',button:2}))";
+  await driver.executeScript(touchContextMenu, surface);
   await driver.executeScript("arguments[0].dispatchEvent(new PointerEvent('pointercancel', {bubbles:true}))", surface);
+  await driver.executeScript(touchContextMenu, surface);
+  assert.deepEqual(await driver.getAllWindowHandles(), handles);
   assert.equal(await progress.getAttribute("aria-valuemax"), "100");
   assert.equal(await progress.getAttribute("aria-valuenow"), "0");
   assert.equal((await root.findElements(By.css(".segment.filled"))).length, 0);
@@ -278,10 +283,13 @@ test("the capture rectangle follows a scrolled document", async () => {
 
 test("settings persist, validate input, and configure all three sampling shapes", async () => {
   await driver.get(url);
+  const clipboardBefore = await pastedValue();
   const pageHandle = await driver.getWindowHandle();
   const handles = await driver.getAllWindowHandles();
   const picker = await activate();
-  await (await picker.findElement(By.css(".settings"))).click();
+  assert.equal((await picker.findElements(By.css("button"))).length, 1);
+  assert.equal((await picker.findElements(By.css(".settings"))).length, 0);
+  await driver.actions().move({ x: 200, y: 200 }).contextClick().perform();
   await driver.wait(async () => (await driver.getAllWindowHandles()).length > handles.length, 5000);
   const settingsHandle = (await driver.getAllWindowHandles()).find((handle) => !handles.includes(handle));
   await driver.switchTo().window(settingsHandle);
@@ -292,6 +300,9 @@ test("settings persist, validate input, and configure all three sampling shapes"
   assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1500");
   assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
   assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "rectangle");
+  await driver.switchTo().window(pageHandle);
+  assert.equal(await pastedValue(), clipboardBefore);
+  await driver.switchTo().window(settingsHandle);
   await screenshot("settings-defaults");
   const phoneFrame = await driver.executeScript(`
     const frame = document.createElement('iframe');
