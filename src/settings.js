@@ -1,10 +1,10 @@
 export const DEFAULT_SETTINGS = Object.freeze({
   initialHoldMs: 1500,
   growthHoldMs: 750,
-  shape: "rectangle",
+  shape: "square",
 });
 
-export const SHAPES = Object.freeze(["rectangle", "circle", "rhombus"]);
+export const SHAPES = Object.freeze(["square", "circle", "rhombus"]);
 export const MAX_HOLD_MS = 60_000;
 
 function validTime(value, minimum) {
@@ -12,10 +12,11 @@ function validTime(value, minimum) {
 }
 
 export function normalizeSettings(value) {
+  const shape = value?.shape === "rectangle" ? "square" : value?.shape;
   return {
     initialHoldMs: validTime(value?.initialHoldMs, 0) ? value.initialHoldMs : DEFAULT_SETTINGS.initialHoldMs,
     growthHoldMs: validTime(value?.growthHoldMs, 1) ? value.growthHoldMs : DEFAULT_SETTINGS.growthHoldMs,
-    shape: SHAPES.includes(value?.shape) ? value.shape : DEFAULT_SETTINGS.shape,
+    shape: SHAPES.includes(shape) ? shape : DEFAULT_SETTINGS.shape,
   };
 }
 

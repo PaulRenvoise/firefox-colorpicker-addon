@@ -111,7 +111,7 @@ test("activation shows the pipette magnifier; only release copies, with icon fee
   await waitForClosed();
 });
 
-test("a long hold averages the selected rectangle and caps at ten steps", async () => {
+test("a long hold averages the selected square and caps at ten steps", async () => {
   await driver.get(url);
   await driver.executeScript("paint(true)");
   const root = await activate();
@@ -324,7 +324,8 @@ test("settings autosave with debounce, validate input, and configure sampling sh
   await ready();
   assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1500");
   assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
-  assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "rectangle");
+  assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "square");
+  assert.equal(await driver.findElement(By.css('#shape option[value="square"]')).getText(), "Square");
   assert.equal((await driver.findElements(By.css("button[type='submit']"))).length, 0);
   await driver.switchTo().window(pageHandle);
   assert.equal(await pastedValue(), clipboardBefore);
@@ -435,7 +436,7 @@ test("settings autosave with debounce, validate input, and configure sampling sh
   await driver.executeAsyncScript("setTimeout(arguments[arguments.length - 1], 450)");
   assert.equal((await storedSettings()).initialHoldMs, 1500);
 
-  for (const [shape, expected] of [["rectangle", "#FA0005"], ["circle", "#F60009"], ["rhombus", "#F5000A"]]) {
+  for (const [shape, expected] of [["square", "#FA0005"], ["circle", "#F60009"], ["rhombus", "#F5000A"]]) {
     await changeSettings(100, 1000, shape);
     await driver.navigate().refresh();
     await ready();
@@ -456,7 +457,7 @@ test("settings autosave with debounce, validate input, and configure sampling sh
     await driver.switchTo().window(settingsHandle);
   }
 
-  await changeSettings(0, 50, "rectangle");
+  await changeSettings(0, 50, "square");
   await driver.switchTo().window(pageHandle);
   const root = await activate();
   const progress = await root.findElement(By.css(".progress"));
@@ -474,5 +475,5 @@ test("settings autosave with debounce, validate input, and configure sampling sh
   await ready();
   assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1500");
   assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
-  assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "rectangle");
+  assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "square");
 });

@@ -147,7 +147,7 @@ test("Android menu activation, touch release, clipboard, and icon feedback", asy
   }
 }, { timeout: 45_000 });
 
-test("Android sustained touch averages the default rectangle at step ten", async () => {
+test("Android sustained touch averages the default square at step ten", async () => {
   await driver.get(url);
   await driver.executeScript("paint(true)");
   const root = await activate();

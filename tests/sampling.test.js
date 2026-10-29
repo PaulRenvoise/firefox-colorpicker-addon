@@ -18,9 +18,9 @@ test("first expansion includes only the center and four orthogonal neighbors", (
   ]);
 });
 
-test("rectangle, circle, and rhombus select exactly their geometric regions", () => {
+test("square, circle, and rhombus select exactly their geometric regions", () => {
   const contains = {
-    rectangle: (x, y, radius) => Math.max(Math.abs(x), Math.abs(y)) <= radius,
+    square: (x, y, radius) => Math.max(Math.abs(x), Math.abs(y)) <= radius,
     circle: (x, y, radius) => x * x + y * y <= radius * radius,
     rhombus: (x, y, radius) => Math.abs(x) + Math.abs(y) <= radius,
   };

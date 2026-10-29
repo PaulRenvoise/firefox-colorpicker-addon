@@ -2,15 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { DEFAULT_SETTINGS, normalizeSettings } from "../src/settings.js";
 
-test("new installs use 1500 ms, 750 ms, and a rectangle", () => {
-  assert.deepEqual(normalizeSettings(), { initialHoldMs: 1500, growthHoldMs: 750, shape: "rectangle" });
+test("new installs use 1500 ms, 750 ms, and a square", () => {
+  assert.deepEqual(normalizeSettings(), { initialHoldMs: 1500, growthHoldMs: 750, shape: "square" });
 });
 
 test("valid saved choices are preserved, including zero initial delay", () => {
-  for (const shape of ["rectangle", "circle", "rhombus"]) {
+  for (const shape of ["square", "circle", "rhombus"]) {
     const settings = { initialHoldMs: 0, growthHoldMs: 1, shape };
     assert.deepEqual(normalizeSettings(settings), settings);
   }
+  assert.deepEqual(normalizeSettings({ initialHoldMs: 200, growthHoldMs: 100, shape: "rectangle" }), {
+    initialHoldMs: 200, growthHoldMs: 100, shape: "square",
+  });
   assert.deepEqual(normalizeSettings({ initialHoldMs: 60_000, growthHoldMs: 60_000, shape: "circle" }), {
     initialHoldMs: 60_000, growthHoldMs: 60_000, shape: "circle",
   });
@@ -22,7 +25,7 @@ test("invalid stored times and shapes fall back to defaults without losing valid
     assert.equal(normalizeSettings({ growthHoldMs: value }).growthHoldMs, 750);
   }
   assert.deepEqual(normalizeSettings({ initialHoldMs: 200, growthHoldMs: 0, shape: "triangle", extra: true }), {
-    initialHoldMs: 200, growthHoldMs: 750, shape: "rectangle",
+    initialHoldMs: 200, growthHoldMs: 750, shape: "square",
   });
   assert.deepEqual(normalizeSettings(null), DEFAULT_SETTINGS);
   assert.deepEqual(normalizeSettings("invalid"), DEFAULT_SETTINGS);

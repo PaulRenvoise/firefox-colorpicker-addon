@@ -13,7 +13,7 @@ finger. Firefox for iOS does not support Firefox WebExtensions.
 
 A normal click or tap samples one screenshot pixel. Hold for more than **1.5 seconds**
 to expand the region by one step every **750 ms**, up to **10 steps**. These are the
-default timings and can be changed in settings. The default **rectangle** grows
+default timings and can be changed in settings. The default **square** grows
 equally on all four sides, reaching 441 pixels at step ten away from image edges.
 **Circle** includes pixels within the current radius (317 at step ten), while
 **rhombus** uses orthogonal distance, with diagonals costing two moves (221 at step
@@ -47,7 +47,7 @@ colors. The settings page opens in its own tab:
   Accepts whole numbers from 0 to 60000. Zero starts averaging immediately on press.
 - **Growth hold time:** milliseconds between steps; default **750 ms**.
   Accepts whole numbers from 1 to 60000.
-- **Pipette shape:** **rectangle** (default), **circle**, or **rhombus**.
+- **Pipette shape:** **square** (default), **circle**, or **rhombus**.
 
 Valid changes save automatically after a **300 ms** pause in editing and apply to
 the next picker session, including on already-open tabs. **Restore defaults**
