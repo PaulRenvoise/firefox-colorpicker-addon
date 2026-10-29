@@ -23,17 +23,8 @@ export class Picker {
     this.listen(this.view.surface, "pointerup", (event) => this.pointerUp(event));
     this.listen(this.view.surface, "pointercancel", () => this.cancelHold());
     this.listen(this.view.surface, "lostpointercapture", () => this.cancelHold());
-    this.listen(this.view.surface, "contextmenu", (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      // Touch long presses belong to averaging, even if the browser first
-      // cancelled the pointer before emitting a native context-menu event.
-      if (this.pointerType === "touch" || this.busy || this.completed) return;
-      this.destroy();
-      browser.runtime.sendMessage({ type: "pipette:settings" }).catch((error) => console.warn("Pipette settings unavailable:", error));
-    });
     // Suppress native long-press menus, text selection, drag, and page clicks.
-    for (const type of ["dragstart", "selectstart", "click", "auxclick", "wheel", "touchmove"]) {
+    for (const type of ["contextmenu", "dragstart", "selectstart", "click", "auxclick", "wheel", "touchmove"]) {
       this.listen(this.view.surface, type, (event) => {
         event.preventDefault();
         event.stopImmediatePropagation();

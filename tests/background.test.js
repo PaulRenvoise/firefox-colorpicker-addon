@@ -61,7 +61,6 @@ function background({ clipboardFails = false, iconFails = false, settingsFail = 
   const sender = { id: "test", tab: { id: 1 }, frameId: 0 };
   return {
     calls, copy: (hex = "#123456", from = sender) => receive({ type: "pipette:copy", hex }, from), activate,
-    openSettings: () => receive({ type: "pipette:settings" }, sender),
     install: () => installed?.(), menuClick: (menuItemId) => menuClick?.({ menuItemId }), menuItems,
   };
 }
@@ -110,12 +109,6 @@ test("captures before mounting the overlay and ignores overlapping activation", 
   });
 });
 
-test("the picker can open the extension's settings page", async () => {
-  const app = background();
-  assert.equal((await app.openSettings()).ok, true);
-  assert.deepEqual(app.calls, [["options"]]);
-});
-
 test("the toolbar Settings menu opens preferences without activating the picker", async () => {
   const app = background();
   app.install();
@@ -127,10 +120,10 @@ test("the toolbar Settings menu opens preferences without activating the picker"
   assert.deepEqual(app.calls, [["options"]]);
 });
 
-test("settings remain available when toolbar menus are unsupported", async () => {
+test("picking remains available when toolbar menus are unsupported", async () => {
   const app = background({ menusAvailable: false });
-  assert.equal((await app.openSettings()).ok, true);
-  assert.deepEqual(app.calls, [["options"]]);
+  await app.activate({ id: 1, windowId: 1, url: "https://example.test" });
+  assert.equal(app.calls.at(-1)[0], "pipette:start");
 });
 
 test("a settings menu failure explains how to open preferences", async () => {

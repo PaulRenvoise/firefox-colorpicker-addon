@@ -86,9 +86,6 @@ browser.action.onClicked.addListener(async (tab) => {
 
 browser.runtime.onMessage.addListener((message, sender) => {
   if (sender.id !== browser.runtime.id || !sender.tab || sender.frameId !== 0) return;
-  if (message?.type === "pipette:settings") {
-    return openSettings();
-  }
   if (message?.type !== "pipette:copy" || !/^#[\dA-F]{6}$/.test(message.hex)) return;
   return (async () => {
     try {

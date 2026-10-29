@@ -53,6 +53,19 @@ async function clickIcon() {
   }
 }
 
+async function chooseToolbarSettings() {
+  await driver.setContext(firefox.Context.CHROME);
+  try {
+    const icon = await driver.findElement(By.id("_pipette_paulrenvoise-BAP"));
+    await driver.actions().contextClick(icon).perform();
+    const settings = await driver.wait(until.elementLocated(By.css('menuitem[label="Settings"]')), 5000, "Toolbar Settings item was not created");
+    await driver.wait(until.elementIsVisible(settings), 5000, "Toolbar Settings item did not become visible");
+    await driver.actions().click(settings).perform();
+  } finally {
+    await driver.setContext(firefox.Context.CONTENT);
+  }
+}
+
 async function text(root, selector) {
   return (await root.findElement(By.css(selector))).getText();
 }
@@ -282,19 +295,10 @@ test("the capture rectangle follows a scrolled document", async () => {
 
 test("the toolbar context menu opens settings without starting the picker", async () => {
   // Settings must be reachable even on pages where screenshot injection is blocked.
-  await driver.get("about:blank");
+  await driver.get("about:robots");
   const pageHandle = await driver.getWindowHandle();
   const handles = await driver.getAllWindowHandles();
-  await driver.setContext(firefox.Context.CHROME);
-  try {
-    const icon = await driver.findElement(By.id("_pipette_paulrenvoise-BAP"));
-    await driver.actions().contextClick(icon).perform();
-    const settings = await driver.wait(until.elementLocated(By.css('menuitem[label="Settings"]')), 5000);
-    await driver.wait(until.elementIsVisible(settings), 5000);
-    await settings.click();
-  } finally {
-    await driver.setContext(firefox.Context.CONTENT);
-  }
+  await chooseToolbarSettings();
   await driver.wait(async () => (await driver.getAllWindowHandles()).length > handles.length, 5000);
   const settingsHandle = (await driver.getAllWindowHandles()).find((handle) => !handles.includes(handle));
   await driver.switchTo().window(settingsHandle);
@@ -315,7 +319,11 @@ test("settings autosave with debounce, validate input, and configure sampling sh
   assert.equal((await picker.findElements(By.css("button"))).length, 0);
   assert.equal((await picker.findElements(By.css(".settings"))).length, 0);
   await driver.actions().move({ x: 200, y: 200 }).contextClick().perform();
-  await driver.wait(async () => (await driver.getAllWindowHandles()).length > handles.length, 5000);
+  assert.deepEqual(await driver.getAllWindowHandles(), handles);
+  assert.equal(await driver.findElement(By.id("pipette-picker")).isDisplayed(), true);
+  assert.equal(await (await picker.findElement(By.css(".status"))).isDisplayed(), false);
+  await chooseToolbarSettings();
+  await driver.wait(async () => (await driver.getAllWindowHandles()).length > handles.length, 5000, "Toolbar Settings did not open a new tab");
   const settingsHandle = (await driver.getAllWindowHandles()).find((handle) => !handles.includes(handle));
   await driver.switchTo().window(settingsHandle);
   const settingsUrl = await driver.getCurrentUrl();
