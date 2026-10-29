@@ -29,7 +29,7 @@ if (!globalThis.__pipetteInstalled) {
           if (!sameViewport(message.viewport, readViewport())) {
             return { ok: false, error: "The page moved. Activate Pipette again." };
           }
-          picker = new Picker(image, message.viewport, () => { picker = null; });
+          picker = new Picker(image, message.viewport, () => { picker = null; }, message.settings);
           return { ok: true };
         } catch (error) {
           picker?.destroy();

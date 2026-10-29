@@ -1,9 +1,11 @@
-import { averageColor, HOLD_DELAY_MS, imagePoint, radiusForHold } from "../sampling.js";
+import { averageColor, imagePoint, radiusForHold } from "../sampling.js";
+import { normalizeSettings } from "../settings.js";
 import { PickerView } from "./view.js";
 import { readViewport, sameViewport } from "./viewport.js";
 
 export class Picker {
-  constructor(image, viewport, onClose) {
+  constructor(image, viewport, onClose, settings) {
+    this.settings = normalizeSettings(settings);
     this.viewport = viewport;
     this.onClose = onClose;
     this.events = new AbortController();
@@ -14,7 +16,13 @@ export class Picker {
     this.busy = false;
     this.closed = false;
     this.completed = false;
-    this.view = new PickerView(image, viewport, () => this.destroy());
+    this.view = new PickerView(image, viewport, this.settings.shape, {
+      cancel: () => this.destroy(),
+      openSettings: () => {
+        this.destroy();
+        browser.runtime.sendMessage({ type: "pipette:settings" }).catch((error) => console.warn("Pipette settings unavailable:", error));
+      },
+    });
 
     this.listen(this.view.surface, "pointerdown", (event) => this.pointerDown(event));
     this.listen(this.view.surface, "pointermove", (event) => this.pointerMove(event));
@@ -24,7 +32,7 @@ export class Picker {
     // Suppress native long-press menus, text selection, drag, and page clicks.
     for (const type of ["contextmenu", "dragstart", "selectstart", "click", "auxclick", "wheel", "touchmove"]) {
       this.listen(this.view.surface, type, (event) => {
-        if (event.composedPath().includes(this.view.closeButton)) return;
+        if (this.view.controls.some((control) => event.composedPath().includes(control))) return;
         event.preventDefault();
         event.stopImmediatePropagation();
       }, { passive: false });
@@ -62,7 +70,7 @@ export class Picker {
   }
 
   pointerDown(event) {
-    if (event.composedPath().includes(this.view.closeButton)) return;
+    if (this.view.controls.some((control) => event.composedPath().includes(control))) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if (this.busy || this.completed) return;
@@ -108,10 +116,12 @@ export class Picker {
 
   sample(now) {
     const elapsed = this.startedAt === null ? 0 : now - this.startedAt;
-    const radius = radiusForHold(elapsed);
+    const holding = this.startedAt !== null;
+    const radius = holding ? radiusForHold(elapsed, this.settings) : 0;
     const center = imagePoint(this.point, this.viewport, this.view.image);
-    const color = averageColor(this.view.image, center.x, center.y, radius);
-    return { radius, center, color, progress: Math.min(1, elapsed / HOLD_DELAY_MS) };
+    const color = averageColor(this.view.image, center.x, center.y, radius, this.settings.shape);
+    const progress = holding ? (this.settings.initialHoldMs === 0 ? 1 : Math.min(1, elapsed / this.settings.initialHoldMs)) : 0;
+    return { radius, center, color, progress };
   }
 
   render(now = performance.now()) {
@@ -144,7 +154,7 @@ export class Picker {
       this.destroy();
       return;
     }
-    if (this.view.surface.getRootNode().activeElement === this.view.closeButton) return;
+    if (this.view.controls.includes(this.view.surface.getRootNode().activeElement)) return;
     const movement = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
     if (movement && !this.busy && !this.completed) {
       event.preventDefault();

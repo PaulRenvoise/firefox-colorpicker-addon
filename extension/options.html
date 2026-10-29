@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pipette settings</title>
+    <link rel="icon" href="icons/pipette.svg">
+    <link rel="stylesheet" href="options.css">
+    <script src="options.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="icons/pipette.svg" width="40" height="40" alt="">
+        <div>
+          <h1>Pipette settings</h1>
+          <p>Choose how the sampling area grows while you hold.</p>
+        </div>
+      </header>
+      <form id="settings-form">
+        <fieldset disabled>
+          <div class="field">
+            <label for="initial-hold">Initial hold time</label>
+            <div class="number-input">
+              <input id="initial-hold" name="initialHoldMs" type="number" inputmode="numeric" min="0" max="60000" step="1" required aria-describedby="initial-hold-help">
+              <span aria-hidden="true">ms</span>
+            </div>
+            <p id="initial-hold-help">How long to hold before the sampling area starts growing. Default: 1500 ms.</p>
+          </div>
+          <div class="field">
+            <label for="growth-hold">Growth hold time</label>
+            <div class="number-input">
+              <input id="growth-hold" name="growthHoldMs" type="number" inputmode="numeric" min="1" max="60000" step="1" required aria-describedby="growth-hold-help">
+              <span aria-hidden="true">ms</span>
+            </div>
+            <p id="growth-hold-help">Time between each increase in sampling area. Default: 750 ms.</p>
+          </div>
+          <div class="field">
+            <label for="shape">Pipette shape</label>
+            <select id="shape" name="shape" aria-describedby="shape-help">
+              <option value="rectangle">Rectangle</option>
+              <option value="circle">Circle</option>
+              <option value="rhombus">Rhombus</option>
+            </select>
+            <p id="shape-help">Shape of the area used to average the color. Default: rectangle.</p>
+          </div>
+          <div class="actions">
+            <button type="submit" class="primary">Save settings</button>
+            <button type="button" id="restore-defaults">Restore defaults</button>
+          </div>
+        </fieldset>
+        <p id="save-status" role="status" aria-live="polite"></p>
+      </form>
+      <p class="footnote">Changes apply the next time you activate Pipette.</p>
+    </main>
+  </body>
+</html>

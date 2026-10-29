@@ -13,7 +13,8 @@ function element(tag, className, text) {
 }
 
 export class PickerView {
-  constructor(image, viewport, cancel) {
+  constructor(image, viewport, shape, { cancel, openSettings }) {
+    this.shape = shape;
     this.viewport = viewport;
     this.previousFocus = document.activeElement;
     this.host = document.createElement("div");
@@ -47,7 +48,15 @@ export class PickerView {
     this.closeButton = element("button", "close", "×");
     this.closeButton.type = "button";
     this.closeButton.setAttribute("aria-label", "Cancel color picker");
-    this.closeButton.addEventListener("click", cancel);
+    this.closeButton.addEventListener("click", (event) => { event.stopPropagation(); cancel(); });
+    this.settingsButton = element("button", "settings", "⚙︎");
+    this.settingsButton.type = "button";
+    this.settingsButton.setAttribute("aria-label", "Pipette settings");
+    this.settingsButton.title = "Settings";
+    this.settingsButton.addEventListener("click", (event) => { event.stopPropagation(); openSettings(); });
+    this.settingsButton.style.left = `${viewport.left + viewport.width - 104}px`;
+    this.settingsButton.style.top = `${viewport.top + 12}px`;
+    this.controls = [this.closeButton, this.settingsButton];
     heading.append(element("strong", "", "Pipette"));
     this.closeButton.style.left = `${viewport.left + viewport.width - 52}px`;
     this.closeButton.style.top = `${viewport.top + 12}px`;
@@ -71,7 +80,7 @@ export class PickerView {
     this.status.setAttribute("role", "status");
     this.status.setAttribute("aria-live", "polite");
     this.status.hidden = true;
-    this.surface.append(this.snapshot, this.panel, this.status, this.closeButton);
+    this.surface.append(this.snapshot, this.panel, this.status, ...this.controls);
     document.documentElement.append(this.host);
     this.host.showPopover();
     this.host.focus({ preventScroll: true });
@@ -104,7 +113,7 @@ export class PickerView {
       context.lineTo(CANVAS_SIZE - padding, position);
       context.stroke();
     }
-    const selected = [...selectedPixels(center.x, center.y, radius, this.image.width, this.image.height)];
+    const selected = [...selectedPixels(center.x, center.y, radius, this.image.width, this.image.height, this.shape)];
     const keys = new Set(selected.map(({ x, y }) => `${x},${y}`));
     context.fillStyle = "#38bdf82e";
     context.strokeStyle = "#f8fafc";
@@ -159,7 +168,7 @@ export class PickerView {
     this.status.style.bottom = "auto";
     this.panel.hidden = completed;
     this.snapshot.hidden = completed;
-    this.closeButton.hidden = completed;
+    this.controls.forEach((control) => { control.hidden = completed; });
     if (completed) {
       this.host.setAttribute("data-completed", "");
     }

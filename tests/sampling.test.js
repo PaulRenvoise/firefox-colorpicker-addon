@@ -13,23 +13,43 @@ test("hold waits 1.5 seconds, then adds a step every 750 ms up to ten iterations
 });
 
 test("first expansion includes only the center and four orthogonal neighbors", () => {
-  assert.deepEqual([...selectedPixels(2, 2, 1, 5, 5)], [
+  assert.deepEqual([...selectedPixels(2, 2, 1, 5, 5, "rhombus")], [
     { x: 2, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 2, y: 3 },
   ]);
 });
 
-test("diagonals enter at distance two; every iteration uses Manhattan distance", () => {
-  for (let radius = 0; radius <= 10; radius++) {
-    const selected = [...selectedPixels(10, 10, radius, 21, 21)];
-    assert.equal(selected.length, 1 + 2 * radius * (radius + 1));
-    const keys = new Set(selected.map(({ x, y }) => `${x},${y}`));
-    assert.equal(keys.size, selected.length);
-    for (let y = 0; y < 21; y++) {
-      for (let x = 0; x < 21; x++) {
-        assert.equal(keys.has(`${x},${y}`), Math.abs(x - 10) + Math.abs(y - 10) <= radius);
+test("rectangle, circle, and rhombus select exactly their geometric regions", () => {
+  const contains = {
+    rectangle: (x, y, radius) => Math.max(Math.abs(x), Math.abs(y)) <= radius,
+    circle: (x, y, radius) => x * x + y * y <= radius * radius,
+    rhombus: (x, y, radius) => Math.abs(x) + Math.abs(y) <= radius,
+  };
+  for (const [shape, inside] of Object.entries(contains)) {
+    for (let radius = 0; radius <= 10; radius++) {
+      const selected = [...selectedPixels(10, 10, radius, 21, 21, shape)];
+      const keys = new Set(selected.map(({ x, y }) => `${x},${y}`));
+      assert.equal(keys.size, selected.length);
+      for (let y = 0; y < 21; y++) {
+        for (let x = 0; x < 21; x++) {
+          assert.equal(keys.has(`${x},${y}`), inside(x - 10, y - 10, radius), `${shape} radius ${radius}: ${x},${y}`);
+        }
       }
     }
   }
+  assert.equal([...selectedPixels(10, 10, 10, 21, 21)].length, 441);
+  assert.equal([...selectedPixels(10, 10, 10, 21, 21, "circle")].length, 317);
+  assert.equal([...selectedPixels(10, 10, 10, 21, 21, "rhombus")].length, 221);
+});
+
+test("custom hold times control each step and zero delay still caps at ten", () => {
+  const settings = { initialHoldMs: 200, growthHoldMs: 100 };
+  assert.equal(radiusForHold(200, settings), 0);
+  assert.equal(radiusForHold(201, settings), 1);
+  assert.equal(radiusForHold(300, settings), 1);
+  assert.equal(radiusForHold(301, settings), 2);
+  assert.equal(radiusForHold(1101, settings), 10);
+  assert.equal(radiusForHold(0, { initialHoldMs: 0, growthHoldMs: 1 }), 0);
+  assert.equal(radiusForHold(100, { initialHoldMs: 0, growthHoldMs: 1 }), 10);
 });
 
 test("averages only selected RGB pixels, with rounding and uppercase HEX", () => {
@@ -37,13 +57,15 @@ test("averages only selected RGB pixels, with rounding and uppercase HEX", () =>
   for (let i = 0; i < 9; i++) image.data.set([255, 0, 0, 255], i * 4);
   image.data.set([0, 0, 255, 255], 4 * 4);
   assert.deepEqual(averageColor(image, 1, 1, 0), { hex: "#0000FF", count: 1 });
-  assert.deepEqual(averageColor(image, 1, 1, 1), { hex: "#CC0033", count: 5 });
+  assert.deepEqual(averageColor(image, 1, 1, 1), { hex: "#E3001C", count: 9 });
+  assert.deepEqual(averageColor(image, 1, 1, 1, "circle"), { hex: "#CC0033", count: 5 });
+  assert.deepEqual(averageColor(image, 1, 1, 1, "rhombus"), { hex: "#CC0033", count: 5 });
   assert.deepEqual(averageColor(image, 1, 1, 2), { hex: "#E3001C", count: 9 });
 });
 
 test("screen edges clip the region without duplicating or inventing pixels", () => {
   assert.deepEqual([...selectedPixels(0, 0, 1, 3, 3)], [
-    { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 },
+    { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 },
   ]);
   const image = { width: 1, height: 1, data: new Uint8ClampedArray([18, 52, 86, 255]) };
   assert.deepEqual(averageColor(image, 0, 0, 10), { hex: "#123456", count: 1 });

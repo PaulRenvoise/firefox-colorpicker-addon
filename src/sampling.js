@@ -1,20 +1,20 @@
-export const HOLD_DELAY_MS = 1500;
-export const GROWTH_INTERVAL_MS = 750;
+import { DEFAULT_SETTINGS } from "./settings.js";
+
 export const MAX_RADIUS = 10;
 
-export function radiusForHold(elapsedMs) {
-  if (elapsedMs <= HOLD_DELAY_MS) return 0;
-  return Math.min(MAX_RADIUS, Math.ceil((elapsedMs - HOLD_DELAY_MS) / GROWTH_INTERVAL_MS));
+export function radiusForHold(elapsedMs, settings = DEFAULT_SETTINGS) {
+  if (elapsedMs <= settings.initialHoldMs) return 0;
+  return Math.min(MAX_RADIUS, Math.ceil((elapsedMs - settings.initialHoldMs) / settings.growthHoldMs));
 }
 
-// Each iteration includes pixels one orthogonal step farther from the center.
-// A diagonal therefore costs two steps: |dx| + |dy| <= radius.
-export function* selectedPixels(x, y, radius, width, height) {
+export function* selectedPixels(x, y, radius, width, height, shape = DEFAULT_SETTINGS.shape) {
   const limit = Math.max(0, Math.min(MAX_RADIUS, Math.floor(radius)));
   for (let dy = -limit; dy <= limit; dy++) {
     const py = y + dy;
     if (py < 0 || py >= height) continue;
-    const span = limit - Math.abs(dy);
+    const span = shape === "rhombus" ? limit - Math.abs(dy)
+      : shape === "circle" ? Math.floor(Math.sqrt(limit * limit - dy * dy))
+      : limit;
     for (let dx = -span; dx <= span; dx++) {
       const px = x + dx;
       if (px >= 0 && px < width) yield { x: px, y: py };
@@ -22,12 +22,12 @@ export function* selectedPixels(x, y, radius, width, height) {
   }
 }
 
-export function averageColor(image, x, y, radius) {
+export function averageColor(image, x, y, radius, shape = DEFAULT_SETTINGS.shape) {
   let red = 0;
   let green = 0;
   let blue = 0;
   let count = 0;
-  for (const pixel of selectedPixels(x, y, radius, image.width, image.height)) {
+  for (const pixel of selectedPixels(x, y, radius, image.width, image.height, shape)) {
     const index = (pixel.y * image.width + pixel.x) * 4;
     red += image.data[index];
     green += image.data[index + 1];

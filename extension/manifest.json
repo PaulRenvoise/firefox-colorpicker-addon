@@ -3,8 +3,9 @@
   "name": "Pipette",
   "version": "0.1.0",
   "description": "Pick a color, or hold to average a growing area. Release to copy its HEX value.",
-  "permissions": ["activeTab", "scripting", "clipboardWrite", "notifications"],
+  "permissions": ["activeTab", "scripting", "clipboardWrite", "notifications", "storage"],
   "background": { "scripts": ["background.js"] },
+  "options_ui": { "page": "options.html", "open_in_tab": true },
   "action": {
     "default_title": "Pick a color",
     "default_icon": { "16": "icons/pipette.svg", "32": "icons/pipette.svg" }

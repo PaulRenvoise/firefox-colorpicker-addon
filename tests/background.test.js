@@ -2,15 +2,20 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
+import { DEFAULT_SETTINGS } from "../src/settings.js";
 
-const source = await readFile(new URL("../src/background.js", import.meta.url), "utf8");
+const source = (await readFile(new URL("../src/background.js", import.meta.url), "utf8")).replace(/^import .*;\n/gm, "");
 
-function background({ clipboardFails = false, iconFails = false } = {}) {
+function background({ clipboardFails = false, iconFails = false, settings = DEFAULT_SETTINGS } = {}) {
   const calls = [];
   let receive;
   let activate;
   const browser = {
-    runtime: { id: "test", getURL: (path) => path, onMessage: { addListener: (listener) => { receive = listener; } } },
+    runtime: {
+      id: "test", getURL: (path) => path,
+      onMessage: { addListener: (listener) => { receive = listener; } },
+      openOptionsPage: async () => { calls.push(["options"]); },
+    },
     action: {
       onClicked: { addListener: (listener) => { activate = listener; } },
       setIcon: async (details) => {
@@ -23,7 +28,7 @@ function background({ clipboardFails = false, iconFails = false } = {}) {
     scripting: { executeScript: async () => { calls.push(["inject"]); } },
     tabs: {
       sendMessage: async (tabId, message) => {
-        calls.push([message.type]);
+        calls.push([message.type, message]);
         return message.type === "pipette:prepare" ? {
           viewport: { left: 5, top: 8, width: 400, height: 600, scrollX: 10, scrollY: 200 },
         } : { ok: true };
@@ -34,6 +39,7 @@ function background({ clipboardFails = false, iconFails = false } = {}) {
   };
   runInNewContext(source, {
     browser,
+    loadSettings: async () => { calls.push(["settings"]); return settings; },
     crypto: { randomUUID: () => "session" },
     navigator: { clipboard: { writeText: async (hex) => {
       calls.push(["clipboard", hex]);
@@ -42,7 +48,10 @@ function background({ clipboardFails = false, iconFails = false } = {}) {
     console: { warn() {} },
   });
   const sender = { id: "test", tab: { id: 1 }, frameId: 0 };
-  return { calls, copy: (hex = "#123456", from = sender) => receive({ type: "pipette:copy", hex }, from), activate };
+  return {
+    calls, copy: (hex = "#123456", from = sender) => receive({ type: "pipette:copy", hex }, from), activate,
+    openSettings: () => receive({ type: "pipette:settings" }, sender),
+  };
 }
 
 test("clipboard succeeds before showing a check on the icon", async () => {
@@ -75,13 +84,22 @@ test("ignores malformed colors and messages outside the extension's top frame", 
 });
 
 test("captures before mounting the overlay and ignores overlapping activation", async () => {
-  const app = background();
+  const app = background({ settings: { initialHoldMs: 200, growthHoldMs: 100, shape: "circle" } });
   const tab = { id: 1, windowId: 1, url: "https://example.test" };
   await Promise.all([app.activate(tab), app.activate(tab)]);
   assert.deepEqual(app.calls.map(([type]) => type), [
-    "icon", "title", "inject", "pipette:prepare", "capture", "pipette:start",
+    "icon", "title", "inject", "pipette:prepare", "settings", "capture", "pipette:start",
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(app.calls.find(([type]) => type === "capture")[1])), {
     format: "png", rect: { x: 15, y: 208, width: 400, height: 600 },
   });
+  assert.deepEqual(JSON.parse(JSON.stringify(app.calls.find(([type]) => type === "pipette:start")[1].settings)), {
+    initialHoldMs: 200, growthHoldMs: 100, shape: "circle",
+  });
+});
+
+test("the picker can open the extension's settings page", async () => {
+  const app = background();
+  assert.equal((await app.openSettings()).ok, true);
+  assert.deepEqual(app.calls, [["options"]]);
 });

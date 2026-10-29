@@ -70,11 +70,11 @@ async function waitForText(root, selector, expected, timeout = 5000) {
   await driver.wait(async () => (await text(root, selector)).includes(expected), timeout);
 }
 
-async function waitForStep(root, step) {
+async function waitForStep(root, step, timeout = 12_000) {
   const progress = await root.findElement(By.css(".progress"));
   await driver.wait(async () =>
     await progress.getAttribute("aria-valuemax") === "10" &&
-    await progress.getAttribute("aria-valuenow") === String(step), 12_000);
+    await progress.getAttribute("aria-valuenow") === String(step), timeout);
   return progress;
 }
 
@@ -111,7 +111,7 @@ test("activation shows the pipette magnifier; only release copies, with icon fee
   await waitForClosed();
 });
 
-test("a long hold averages the selected diamond and caps at ten steps", async () => {
+test("a long hold averages the selected rectangle and caps at ten steps", async () => {
   await driver.get(url);
   await driver.executeScript("paint(true)");
   const root = await activate();
@@ -274,4 +274,98 @@ test("the capture rectangle follows a scrolled document", async () => {
   await driver.actions().move({ x: 100, y: 100 }).move({ x: 200, y: 200 }).click().perform();
   await waitForText(root, ".status", "#0000FF copied");
   assert.equal(await pastedValue(), "#0000FF");
+});
+
+test("settings persist, validate input, and configure all three sampling shapes", async () => {
+  await driver.get(url);
+  const pageHandle = await driver.getWindowHandle();
+  const handles = await driver.getAllWindowHandles();
+  const picker = await activate();
+  await (await picker.findElement(By.css(".settings"))).click();
+  await driver.wait(async () => (await driver.getAllWindowHandles()).length > handles.length, 5000);
+  const settingsHandle = (await driver.getAllWindowHandles()).find((handle) => !handles.includes(handle));
+  await driver.switchTo().window(settingsHandle);
+  const settingsUrl = await driver.getCurrentUrl();
+  assert.match(settingsUrl, /^moz-extension:.*\/options\.html$/);
+  const ready = async () => driver.wait(until.elementIsEnabled(await driver.findElement(By.id("initial-hold"))), 5000);
+  await ready();
+  assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1500");
+  assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
+  assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "rectangle");
+  await screenshot("settings-defaults");
+  const phoneFrame = await driver.executeScript(`
+    const frame = document.createElement('iframe');
+    frame.src = location.href;
+    frame.style.cssText = 'position:fixed;inset:0;width:390px;height:750px;border:0;z-index:9999';
+    document.body.append(frame);
+    return frame;
+  `);
+  await driver.switchTo().frame(phoneFrame);
+  await ready();
+  assert.equal(await driver.executeScript("return document.documentElement.scrollWidth <= innerWidth"), true);
+  assert.ok((await driver.findElement(By.id("initial-hold")).getRect()).height >= 44);
+  await driver.switchTo().defaultContent();
+  await writeFile("test-results/settings-mobile-layout.png", await phoneFrame.takeScreenshot(), "base64");
+  await driver.executeScript("arguments[0].remove()", phoneFrame);
+
+  const fill = async (id, value) => {
+    const input = await driver.findElement(By.id(id));
+    await input.clear();
+    await input.sendKeys(String(value));
+  };
+  const save = async (initialHoldMs, growthHoldMs, shape) => {
+    await fill("initial-hold", initialHoldMs);
+    await fill("growth-hold", growthHoldMs);
+    await driver.findElement(By.css(`#shape option[value="${shape}"]`)).click();
+    await driver.findElement(By.css("button.primary")).click();
+    await driver.wait(until.elementTextIs(await driver.findElement(By.id("save-status")), "Settings saved."), 5000);
+  };
+
+  await fill("growth-hold", 0);
+  await driver.findElement(By.css("button.primary")).click();
+  assert.equal(await driver.executeScript("return document.querySelector('#growth-hold').validity.valid"), false);
+  await driver.navigate().refresh();
+  await ready();
+  assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
+
+  for (const [shape, expected] of [["rectangle", "#FA0005"], ["circle", "#F60009"], ["rhombus", "#F5000A"]]) {
+    await save(100, 1000, shape);
+    await driver.navigate().refresh();
+    await ready();
+    assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "100");
+    assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "1000");
+    assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), shape);
+    await driver.switchTo().window(pageHandle);
+    // Reuse the injected content script to verify settings refresh per session.
+    await driver.executeScript("paint(true)");
+    const root = await activate();
+    await driver.actions().move({ x: 200, y: 200 }).press().perform();
+    await waitForStep(root, 3, 4500);
+    assert.equal(await text(root, ".hex"), expected);
+    await screenshot(`shape-${shape}`);
+    await driver.actions().release().perform();
+    await waitForText(root, ".status", `${expected} copied`);
+    assert.equal(await pastedValue(), expected);
+    await driver.switchTo().window(settingsHandle);
+  }
+
+  await save(0, 50, "rectangle");
+  await driver.switchTo().window(pageHandle);
+  const root = await activate();
+  const progress = await root.findElement(By.css(".progress"));
+  assert.equal(await progress.getAttribute("aria-valuemax"), "100");
+  assert.equal(await progress.getAttribute("aria-valuenow"), "0");
+  await driver.actions().move({ x: 200, y: 200 }).press().perform();
+  await waitForStep(root, 10, 2000);
+  await driver.actions().release().perform();
+  await waitForText(root, ".status", "copied");
+  await waitForClosed();
+  await driver.switchTo().window(settingsHandle);
+  await driver.findElement(By.id("restore-defaults")).click();
+  await driver.wait(until.elementTextIs(await driver.findElement(By.id("save-status")), "Default settings restored."), 5000);
+  await driver.navigate().refresh();
+  await ready();
+  assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1500");
+  assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
+  assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "rectangle");
 });

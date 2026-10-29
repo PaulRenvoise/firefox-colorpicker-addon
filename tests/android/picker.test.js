@@ -143,7 +143,7 @@ test("Android menu activation, touch release, clipboard, and icon feedback", asy
   }
 }, { timeout: 45_000 });
 
-test("Android sustained touch averages exactly 221 pixels at step ten", async () => {
+test("Android sustained touch averages the default rectangle at step ten", async () => {
   await driver.get(url);
   await driver.executeScript("paint(true)");
   const root = await activate();

@@ -12,10 +12,12 @@ finger. Firefox for iOS does not support Firefox WebExtensions.
 ## Hold to average
 
 A normal click or tap samples one screenshot pixel. Hold for more than **1.5 seconds**
-to expand the region by one Manhattan-distance step every **750 ms**, up to **10
-steps** (221 pixels away from image edges). The first step includes the center and
-its four immediate neighbors. Diagonals enter on the second step because each
-diagonal costs two orthogonal moves. The preview outlines the selected region.
+to expand the region by one step every **750 ms**, up to **10 steps**. These are the
+default timings and can be changed in settings. The default **rectangle** grows
+equally on all four sides, reaching 441 pixels at step ten away from image edges.
+**Circle** includes pixels within the current radius (317 at step ten), while
+**rhombus** uses orthogonal distance, with diagonals costing two moves (221 at step
+ten). The preview outlines exactly the pixels included in the average.
 The progress bar fills during the initial hold, then switches to ten segments,
 filling one per averaging step. Moving while holding moves the entire sampling
 region.
@@ -33,6 +35,22 @@ keeps the picker open so you can retry.
 **Cancel:** Escape, the × button, or activate the add-on again.
 **Keyboard:** Alt+Shift+Y activates; arrow keys move one screenshot pixel; hold and
 release Space to sample with the same averaging behavior.
+
+## Settings
+
+Click the **gear** beside the picker's close button, or open Pipette's preferences
+in Firefox's add-on manager. The settings page works in its own tab on desktop
+and Android:
+
+- **Initial hold time:** milliseconds before growth begins; default **1500 ms**.
+  Accepts whole numbers from 0 to 60000. Zero starts averaging immediately on press.
+- **Growth hold time:** milliseconds between steps; default **750 ms**.
+  Accepts whole numbers from 1 to 60000.
+- **Pipette shape:** **rectangle** (default), **circle**, or **rhombus**.
+
+Click **Save settings** to apply changes to the next picker session, including on
+already-open tabs. **Restore defaults** resets all three choices. Preferences are
+saved locally in the Firefox profile and persist across browser restarts.
 
 ## Development
 
@@ -109,15 +127,19 @@ activate again to capture the new view. Firefox-protected pages, including
 picker. Firefox's screenshot privacy protections may also affect captured colors.
 
 Permissions are limited to temporary access to the active tab, injecting the
-picker, writing the clipboard, and displaying fallback/error notifications.
+picker, writing the clipboard, storing preferences, and displaying fallback/error
+notifications.
 Screenshots exist only in memory during selection. No browsing data, colors, or
-screenshots are stored or transmitted. There are no analytics or network calls.
+screenshots are stored or transmitted. Only the three preferences are saved
+locally. There are no analytics or network calls.
 
 ## Source layout
 
 - `src/background.js`: toolbar activation, tab capture, clipboard, and icon feedback.
 - `src/sampling.js`: hold timing, pixel selection, coordinate mapping, and averaging.
+- `src/settings.js`: shared defaults, validation, and local preference storage.
+- `src/options.js`: settings form loading, saving, and restoring defaults.
 - `src/content/`: pointer lifecycle, isolated UI, magnifier, and viewport checks.
-- `extension/`: manifest and SVG icons.
+- `extension/`: manifest, SVG icons, and settings page markup and styles.
 - `scripts/build.js`: bundles source and copies extension assets into `dist/`.
 - `tests/`: sampler tests and Firefox integration tests.

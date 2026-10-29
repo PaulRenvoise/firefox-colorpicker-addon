@@ -1,3 +1,5 @@
+import { loadSettings } from "./settings.js";
+
 const activatingTabs = new Set();
 
 async function notify(message) {
@@ -32,6 +34,7 @@ browser.action.onClicked.addListener(async (tab) => {
     const session = crypto.randomUUID();
     const prepared = await browser.tabs.sendMessage(tab.id, { type: "pipette:prepare", session });
     if (prepared.cancelled) return;
+    const settings = await loadSettings();
 
     // Capture before mounting the UI, so the magnifier never samples itself.
     const { viewport } = prepared;
@@ -49,7 +52,7 @@ browser.action.onClicked.addListener(async (tab) => {
     const currentTab = await browser.tabs.get(tab.id);
     if (!currentTab.active || currentTab.url !== tab.url) return;
     const result = await browser.tabs.sendMessage(tab.id, {
-      type: "pipette:start", session, screenshot, viewport: prepared.viewport,
+      type: "pipette:start", session, screenshot, viewport: prepared.viewport, settings,
     });
     if (!result?.ok) throw new Error(result?.error || "The page changed. Activate Pipette again.");
   } catch (error) {
@@ -62,6 +65,12 @@ browser.action.onClicked.addListener(async (tab) => {
 
 browser.runtime.onMessage.addListener((message, sender) => {
   if (sender.id !== browser.runtime.id || !sender.tab || sender.frameId !== 0) return;
+  if (message?.type === "pipette:settings") {
+    return browser.runtime.openOptionsPage().then(() => ({ ok: true })).catch(async () => {
+      await notify("Could not open settings. Open Pipette's preferences in the Firefox add-on manager.");
+      return { ok: false };
+    });
+  }
   if (message?.type !== "pipette:copy" || !/^#[\dA-F]{6}$/.test(message.hex)) return;
   return (async () => {
     try {
