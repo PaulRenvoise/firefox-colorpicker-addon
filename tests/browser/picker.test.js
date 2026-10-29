@@ -281,7 +281,7 @@ test("the capture rectangle follows a scrolled document", async () => {
   assert.equal(await pastedValue(), "#0000FF");
 });
 
-test("settings persist, validate input, and configure all three sampling shapes", async () => {
+test("settings autosave with debounce, validate input, and configure sampling shapes", async () => {
   await driver.get(url);
   const clipboardBefore = await pastedValue();
   const pageHandle = await driver.getWindowHandle();
@@ -300,6 +300,7 @@ test("settings persist, validate input, and configure all three sampling shapes"
   assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1500");
   assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
   assert.equal(await driver.findElement(By.id("shape")).getAttribute("value"), "rectangle");
+  assert.equal((await driver.findElements(By.css("button[type='submit']"))).length, 0);
   await driver.switchTo().window(pageHandle);
   assert.equal(await pastedValue(), clipboardBefore);
   await driver.switchTo().window(settingsHandle);
@@ -324,23 +325,93 @@ test("settings persist, validate input, and configure all three sampling shapes"
     await input.clear();
     await input.sendKeys(String(value));
   };
-  const save = async (initialHoldMs, growthHoldMs, shape) => {
+  const waitForSaved = async () => {
+    await driver.wait(until.elementTextIs(await driver.findElement(By.id("save-status")), "Settings saved."), 5000);
+  };
+  const storedSettings = async () => driver.executeAsyncScript(`
+    const done = arguments[arguments.length - 1];
+    browser.storage.local.get('settings').then(({settings}) => done(settings));
+  `);
+  const changeSettings = async (initialHoldMs, growthHoldMs, shape) => {
     await fill("initial-hold", initialHoldMs);
     await fill("growth-hold", growthHoldMs);
     await driver.findElement(By.css(`#shape option[value="${shape}"]`)).click();
-    await driver.findElement(By.css("button.primary")).click();
-    await driver.wait(until.elementTextIs(await driver.findElement(By.id("save-status")), "Settings saved."), 5000);
+    await waitForSaved();
   };
 
+  await driver.findElement(By.id("restore-defaults")).click();
+  await driver.wait(until.elementTextIs(await driver.findElement(By.id("save-status")), "Default settings restored."), 5000);
+  await driver.executeScript(`
+    window.autosaveChanges = [];
+    browser.storage.onChanged.addListener((changes, area) => {
+      const value = changes.settings?.newValue?.initialHoldMs;
+      if (area === 'local' && [1600, 1700, 1800].includes(value)) window.autosaveChanges.push(value);
+    });
+    const field = document.querySelector('#initial-hold');
+    for (const value of [1600, 1700, 1800]) {
+      field.value = value;
+      field.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+  `);
+  assert.equal((await storedSettings()).initialHoldMs, 1500);
+  await waitForSaved();
+  assert.equal((await storedSettings()).initialHoldMs, 1800);
+  assert.deepEqual(await driver.executeScript("return window.autosaveChanges"), [1800]);
+
+  // Delay one real storage write to exercise edits arriving during a save.
+  await driver.executeScript(`
+    window.settingsWrites = [];
+    const originalSet = browser.storage.local.set.bind(browser.storage.local);
+    browser.storage.local.set = async (changes) => {
+      const value = changes.settings.initialHoldMs;
+      window.settingsWrites.push(value);
+      if (value === 2100) await new Promise(resolve => setTimeout(resolve, 700));
+      if (value === 2400) throw new Error('Test storage failure');
+      return originalSet(changes);
+    };
+  `);
+  await fill("initial-hold", 2100);
+  await driver.wait(async () => await driver.executeScript("return window.settingsWrites.includes(2100)"), 5000);
+  assert.equal(await driver.findElement(By.id("initial-hold")).isEnabled(), true);
+  await fill("initial-hold", 2200);
+  await waitForSaved();
+  assert.equal((await storedSettings()).initialHoldMs, 2200);
+  assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "2200");
+  assert.deepEqual(await driver.executeScript("return window.settingsWrites"), [2100, 2200]);
+
+  await fill("initial-hold", 2400);
+  await driver.wait(async () => await driver.findElement(By.id("save-status")).getAttribute("data-error") !== null, 5000);
+  assert.equal((await storedSettings()).initialHoldMs, 2200);
+  await fill("initial-hold", 2500);
+  await waitForSaved();
+  assert.equal((await storedSettings()).initialHoldMs, 2500);
+
   await fill("growth-hold", 0);
-  await driver.findElement(By.css("button.primary")).click();
   assert.equal(await driver.executeScript("return document.querySelector('#growth-hold').validity.valid"), false);
+  await driver.wait(async () => await driver.findElement(By.id("save-status")).getAttribute("data-error") !== null, 5000);
+  assert.equal((await storedSettings()).growthHoldMs, 750);
   await driver.navigate().refresh();
   await ready();
   assert.equal(await driver.findElement(By.id("growth-hold")).getAttribute("value"), "750");
 
+  // Make the debounce timer deliberately long so navigating away must flush it.
+  await driver.executeScript(`
+    const originalTimeout = window.setTimeout;
+    window.setTimeout = (callback, delay, ...args) => originalTimeout(callback, delay === 300 ? 10000 : delay, ...args);
+  `);
+  await fill("initial-hold", 1900);
+  await driver.navigate().refresh();
+  await ready();
+  assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "1900");
+
+  await fill("initial-hold", 2900);
+  await driver.findElement(By.id("restore-defaults")).click();
+  await driver.wait(until.elementTextIs(await driver.findElement(By.id("save-status")), "Default settings restored."), 5000);
+  await driver.executeAsyncScript("setTimeout(arguments[arguments.length - 1], 450)");
+  assert.equal((await storedSettings()).initialHoldMs, 1500);
+
   for (const [shape, expected] of [["rectangle", "#FA0005"], ["circle", "#F60009"], ["rhombus", "#F5000A"]]) {
-    await save(100, 1000, shape);
+    await changeSettings(100, 1000, shape);
     await driver.navigate().refresh();
     await ready();
     assert.equal(await driver.findElement(By.id("initial-hold")).getAttribute("value"), "100");
@@ -360,7 +431,7 @@ test("settings persist, validate input, and configure all three sampling shapes"
     await driver.switchTo().window(settingsHandle);
   }
 
-  await save(0, 50, "rectangle");
+  await changeSettings(0, 50, "rectangle");
   await driver.switchTo().window(pageHandle);
   const root = await activate();
   const progress = await root.findElement(By.css(".progress"));

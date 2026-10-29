@@ -6,6 +6,11 @@ const initialHold = document.querySelector("#initial-hold");
 const growthHold = document.querySelector("#growth-hold");
 const shape = document.querySelector("#shape");
 const status = document.querySelector("#save-status");
+const SAVE_DELAY_MS = 300;
+let saveTimer = null;
+let revision = 0;
+let pendingSave = null;
+let saving = false;
 
 function populate(settings) {
   initialHold.value = settings.initialHoldMs;
@@ -18,32 +23,74 @@ function showStatus(message, error = false) {
   status.toggleAttribute("data-error", error);
 }
 
-async function persist(settings, message) {
-  fields.disabled = true;
+async function drainSaves() {
+  if (saving) return;
+  saving = true;
   try {
-    populate(await saveSettings(settings));
-    showStatus(message);
-  } catch {
-    showStatus("Could not save settings. Please try again.", true);
+    while (pendingSave) {
+      const next = pendingSave;
+      pendingSave = null;
+      try {
+        await saveSettings(next.settings);
+        if (next.revision === revision) showStatus(next.message);
+      } catch {
+        if (next.revision === revision) showStatus("Could not save settings. Change a value to try again.", true);
+      }
+    }
   } finally {
-    fields.disabled = false;
+    saving = false;
   }
 }
 
-form.addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (!form.reportValidity()) return;
-  persist({
+function queueSave(settings, message) {
+  pendingSave = { settings, message, revision };
+  showStatus("Saving…");
+  drainSaves();
+}
+
+function flushPendingSave() {
+  if (saveTimer === null) return;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  const invalid = form.querySelector("input:invalid, select:invalid");
+  if (invalid) {
+    showStatus(invalid.validationMessage, true);
+    return;
+  }
+  queueSave({
     initialHoldMs: initialHold.valueAsNumber,
     growthHoldMs: growthHold.valueAsNumber,
     shape: shape.value,
   }, "Settings saved.");
+}
+
+function scheduleSave() {
+  if (fields.disabled) return;
+  clearTimeout(saveTimer);
+  revision++;
+  showStatus("Saving…");
+  saveTimer = setTimeout(flushPendingSave, SAVE_DELAY_MS);
+}
+
+form.addEventListener("input", scheduleSave);
+form.addEventListener("change", scheduleSave);
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  flushPendingSave();
 });
 
-form.addEventListener("input", () => showStatus(""));
 document.querySelector("#restore-defaults").addEventListener("click", () => {
-  persist(DEFAULT_SETTINGS, "Default settings restored.");
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  revision++;
+  populate(DEFAULT_SETTINGS);
+  queueSave(DEFAULT_SETTINGS, "Default settings restored.");
 });
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) flushPendingSave();
+});
+window.addEventListener("pagehide", flushPendingSave);
 
 async function initialize() {
   try {

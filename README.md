@@ -49,9 +49,10 @@ own tab:
   Accepts whole numbers from 1 to 60000.
 - **Pipette shape:** **rectangle** (default), **circle**, or **rhombus**.
 
-Click **Save settings** to apply changes to the next picker session, including on
-already-open tabs. **Restore defaults** resets all three choices. Preferences are
-saved locally in the Firefox profile and persist across browser restarts.
+Valid changes save automatically after a **300 ms** pause in editing and apply to
+the next picker session, including on already-open tabs. **Restore defaults**
+resets all three choices immediately. Preferences are saved locally in the Firefox
+profile and persist across browser restarts.
 
 ## Development
 
