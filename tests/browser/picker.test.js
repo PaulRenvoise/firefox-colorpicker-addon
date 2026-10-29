@@ -280,6 +280,32 @@ test("the capture rectangle follows a scrolled document", async () => {
   assert.equal(await pastedValue(), "#0000FF");
 });
 
+test("the toolbar context menu opens settings without starting the picker", async () => {
+  // Settings must be reachable even on pages where screenshot injection is blocked.
+  await driver.get("about:blank");
+  const pageHandle = await driver.getWindowHandle();
+  const handles = await driver.getAllWindowHandles();
+  await driver.setContext(firefox.Context.CHROME);
+  try {
+    const icon = await driver.findElement(By.id("_pipette_paulrenvoise-BAP"));
+    await driver.actions().contextClick(icon).perform();
+    const settings = await driver.wait(until.elementLocated(By.css('menuitem[label="Settings"]')), 5000);
+    await driver.wait(until.elementIsVisible(settings), 5000);
+    await settings.click();
+  } finally {
+    await driver.setContext(firefox.Context.CONTENT);
+  }
+  await driver.wait(async () => (await driver.getAllWindowHandles()).length > handles.length, 5000);
+  const settingsHandle = (await driver.getAllWindowHandles()).find((handle) => !handles.includes(handle));
+  await driver.switchTo().window(settingsHandle);
+  assert.match(await driver.getCurrentUrl(), /^moz-extension:.*\/settings\.html$/);
+  await driver.wait(until.elementIsEnabled(await driver.findElement(By.id("initial-hold"))), 5000);
+  assert.equal(await driver.findElement(By.css("h1")).getText(), "Pipette settings");
+  await driver.close();
+  await driver.switchTo().window(pageHandle);
+  assert.equal((await driver.findElements(By.id("pipette-picker"))).length, 0);
+});
+
 test("settings autosave with debounce, validate input, and configure sampling shapes", async () => {
   await driver.get(url);
   const clipboardBefore = await pastedValue();

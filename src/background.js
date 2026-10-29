@@ -24,6 +24,27 @@ async function showCopied(tabId, hex) {
   }
 }
 
+async function openSettings() {
+  try {
+    await browser.runtime.openOptionsPage();
+    return { ok: true };
+  } catch {
+    await notify("Could not open settings. Open Pipette's preferences in the Firefox add-on manager.");
+    return { ok: false };
+  }
+}
+
+// Toolbar context menus are available on desktop Firefox. Event-page menus
+// persist while the background sleeps, so create them only on install/update.
+if (browser.menus) {
+  browser.runtime.onInstalled.addListener(() => {
+    browser.menus.create({ id: "settings", title: "Settings", contexts: ["action"] });
+  });
+  browser.menus.onClicked.addListener((info) => {
+    if (info.menuItemId === "settings") return openSettings();
+  });
+}
+
 browser.action.onClicked.addListener(async (tab) => {
   if (!Number.isInteger(tab.id) || activatingTabs.has(tab.id)) return;
   activatingTabs.add(tab.id);
@@ -66,10 +87,7 @@ browser.action.onClicked.addListener(async (tab) => {
 browser.runtime.onMessage.addListener((message, sender) => {
   if (sender.id !== browser.runtime.id || !sender.tab || sender.frameId !== 0) return;
   if (message?.type === "pipette:settings") {
-    return browser.runtime.openOptionsPage().then(() => ({ ok: true })).catch(async () => {
-      await notify("Could not open settings. Open Pipette's preferences in the Firefox add-on manager.");
-      return { ok: false };
-    });
+    return openSettings();
   }
   if (message?.type !== "pipette:copy" || !/^#[\dA-F]{6}$/.test(message.hex)) return;
   return (async () => {

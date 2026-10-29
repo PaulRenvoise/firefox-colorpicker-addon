@@ -6,15 +6,22 @@ import { DEFAULT_SETTINGS } from "../src/settings.js";
 
 const source = (await readFile(new URL("../src/background.js", import.meta.url), "utf8")).replace(/^import .*;\n/gm, "");
 
-function background({ clipboardFails = false, iconFails = false, settings = DEFAULT_SETTINGS } = {}) {
+function background({ clipboardFails = false, iconFails = false, settingsFail = false, menusAvailable = true, settings = DEFAULT_SETTINGS } = {}) {
   const calls = [];
   let receive;
   let activate;
+  let installed;
+  let menuClick;
+  const menuItems = [];
   const browser = {
     runtime: {
       id: "test", getURL: (path) => path,
       onMessage: { addListener: (listener) => { receive = listener; } },
-      openOptionsPage: async () => { calls.push(["options"]); },
+      onInstalled: { addListener: (listener) => { installed = listener; } },
+      openOptionsPage: async () => {
+        calls.push(["options"]);
+        if (settingsFail) throw new Error("Unavailable");
+      },
     },
     action: {
       onClicked: { addListener: (listener) => { activate = listener; } },
@@ -37,6 +44,10 @@ function background({ clipboardFails = false, iconFails = false, settings = DEFA
       get: async () => ({ active: true, url: "https://example.test" }),
     },
   };
+  if (menusAvailable) browser.menus = {
+    create: (item) => { menuItems.push(item); },
+    onClicked: { addListener: (listener) => { menuClick = listener; } },
+  };
   runInNewContext(source, {
     browser,
     loadSettings: async () => { calls.push(["settings"]); return settings; },
@@ -51,6 +62,7 @@ function background({ clipboardFails = false, iconFails = false, settings = DEFA
   return {
     calls, copy: (hex = "#123456", from = sender) => receive({ type: "pipette:copy", hex }, from), activate,
     openSettings: () => receive({ type: "pipette:settings" }, sender),
+    install: () => installed?.(), menuClick: (menuItemId) => menuClick?.({ menuItemId }), menuItems,
   };
 }
 
@@ -102,4 +114,30 @@ test("the picker can open the extension's settings page", async () => {
   const app = background();
   assert.equal((await app.openSettings()).ok, true);
   assert.deepEqual(app.calls, [["options"]]);
+});
+
+test("the toolbar Settings menu opens preferences without activating the picker", async () => {
+  const app = background();
+  app.install();
+  assert.deepEqual(JSON.parse(JSON.stringify(app.menuItems)), [{
+    id: "settings", title: "Settings", contexts: ["action"],
+  }]);
+  assert.equal(app.menuClick("other"), undefined);
+  assert.equal((await app.menuClick("settings")).ok, true);
+  assert.deepEqual(app.calls, [["options"]]);
+});
+
+test("settings remain available when toolbar menus are unsupported", async () => {
+  const app = background({ menusAvailable: false });
+  assert.equal((await app.openSettings()).ok, true);
+  assert.deepEqual(app.calls, [["options"]]);
+});
+
+test("a settings menu failure explains how to open preferences", async () => {
+  const app = background({ settingsFail: true });
+  assert.equal((await app.menuClick("settings")).ok, false);
+  assert.deepEqual(app.calls, [
+    ["options"],
+    ["notification", "Could not open settings. Open Pipette's preferences in the Firefox add-on manager."],
+  ]);
 });
