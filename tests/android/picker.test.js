@@ -89,8 +89,8 @@ async function text(root, selector) {
   return (await root.findElement(By.css(selector))).getText();
 }
 
-async function waitForText(root, selector, expected) {
-  await driver.wait(async () => (await text(root, selector)).includes(expected), 10_000);
+async function waitForText(root, selector, expected, timeout = 10_000) {
+  await driver.wait(async () => (await text(root, selector)).includes(expected), timeout);
 }
 
 async function pastedValue() {
@@ -142,7 +142,7 @@ test("Android sustained touch averages exactly 221 pixels at step ten", async ()
   const root = await activate();
   const finger = new Pointer("hold finger", Pointer.Type.TOUCH);
   await driver.actions().insert(finger, finger.move({ x: 200, y: 200, duration: 0 }), finger.press()).perform();
-  await waitForText(root, ".detail", "Step 10/10");
+  await waitForText(root, ".detail", "Step 10/10", 12_000);
   const viewport = await driver.executeScript("return {width:visualViewport.width,height:visualViewport.height}");
   const capturedWidth = Number(await (await root.findElement(By.css(".snapshot"))).getAttribute("width"));
   const capturedHeight = Number(await (await root.findElement(By.css(".snapshot"))).getAttribute("height"));

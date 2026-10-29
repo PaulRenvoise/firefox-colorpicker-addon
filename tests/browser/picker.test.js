@@ -108,7 +108,7 @@ test("a long hold averages the selected diamond and caps at ten steps", async ()
   await driver.executeScript("paint(true)");
   const root = await activate();
   await driver.actions().move({ x: 200, y: 200 }).press().perform();
-  await waitForText(root, ".detail", "Step 10/10", 8000);
+  await waitForText(root, ".detail", "Step 10/10", 12_000);
   assert.equal(await text(root, ".detail"), "221 pixels · Step 10/10");
   assert.equal(await text(root, ".hex"), "#FE0001");
   await screenshot("averaging");
@@ -197,7 +197,7 @@ test("touch hold expands the region and a cancelled touch never copies", async (
   let root = await activate();
   const finger = new Pointer("hold finger", Pointer.Type.TOUCH);
   await driver.actions().insert(finger, finger.move({ x: 200, y: 200, duration: 0 }), finger.press()).perform();
-  await waitForText(root, ".detail", "Step 10/10", 8000);
+  await waitForText(root, ".detail", "Step 10/10", 12_000);
   assert.equal(await text(root, ".hex"), "#FE0001");
   await driver.actions().insert(finger, finger.release()).perform();
   await waitForText(root, ".status", "#FE0001 copied");

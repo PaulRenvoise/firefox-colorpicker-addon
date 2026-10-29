@@ -1,5 +1,5 @@
-export const HOLD_DELAY_MS = 1000;
-export const GROWTH_INTERVAL_MS = 500;
+export const HOLD_DELAY_MS = 1500;
+export const GROWTH_INTERVAL_MS = 750;
 export const MAX_RADIUS = 10;
 
 export function radiusForHold(elapsedMs) {
