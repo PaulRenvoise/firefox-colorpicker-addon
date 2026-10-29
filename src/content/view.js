@@ -13,7 +13,7 @@ function element(tag, className, text) {
 }
 
 export class PickerView {
-  constructor(image, viewport, shape, cancel) {
+  constructor(image, viewport, shape) {
     this.shape = shape;
     this.viewport = viewport;
     this.previousFocus = document.activeElement;
@@ -45,13 +45,7 @@ export class PickerView {
 
     this.panel = element("div", "panel");
     const heading = element("div", "heading");
-    this.closeButton = element("button", "close", "×");
-    this.closeButton.type = "button";
-    this.closeButton.setAttribute("aria-label", "Cancel color picker");
-    this.closeButton.addEventListener("click", (event) => { event.stopPropagation(); cancel(); });
     heading.append(element("strong", "", "Pipette"));
-    this.closeButton.style.left = `${viewport.left + viewport.width - 52}px`;
-    this.closeButton.style.top = `${viewport.top + 12}px`;
     this.magnifier = element("canvas", "magnifier");
     this.magnifier.width = CANVAS_SIZE;
     this.magnifier.height = CANVAS_SIZE;
@@ -72,7 +66,7 @@ export class PickerView {
     this.status.setAttribute("role", "status");
     this.status.setAttribute("aria-live", "polite");
     this.status.hidden = true;
-    this.surface.append(this.snapshot, this.panel, this.status, this.closeButton);
+    this.surface.append(this.snapshot, this.panel, this.status);
     document.documentElement.append(this.host);
     this.host.showPopover();
     this.host.focus({ preventScroll: true });
@@ -160,7 +154,6 @@ export class PickerView {
     this.status.style.bottom = "auto";
     this.panel.hidden = completed;
     this.snapshot.hidden = completed;
-    this.closeButton.hidden = completed;
     if (completed) {
       this.host.setAttribute("data-completed", "");
     }

@@ -137,18 +137,17 @@ test("a long hold averages the selected rectangle and caps at ten steps", async 
   await waitForClosed();
 });
 
-test("Escape, the close control, and a second activation cancel without copying", async () => {
+test("Escape and a second activation cancel without copying", async () => {
   await driver.get(url);
-  await activate();
+  const previous = await pastedValue();
+  const root = await activate();
+  assert.equal((await root.findElements(By.css("button"))).length, 0);
   await driver.actions().sendKeys(Key.ESCAPE).perform();
   await waitForClosed();
-  let root = await activate();
-  await (await root.findElement(By.css("button"))).click();
-  await waitForClosed();
-  root = await activate();
+  await activate();
   await clickIcon();
   await waitForClosed();
-  assert.equal(await pastedValue(), "#FE0001");
+  assert.equal(await pastedValue(), previous);
 });
 
 test("touch drag on a narrow viewport picks on finger release", async () => {
@@ -238,7 +237,7 @@ test("touch hold expands the region and a cancelled touch never copies", async (
   assert.equal((await root.findElements(By.css(".segment.filled"))).length, 0);
   await driver.actions().insert(finger, finger.release()).perform();
   assert.equal(await (await root.findElement(By.css(".status"))).isDisplayed(), false);
-  await (await root.findElement(By.css("button"))).click();
+  await clickIcon();
   assert.equal(await pastedValue(), "#FE0001");
 });
 
@@ -287,7 +286,7 @@ test("settings autosave with debounce, validate input, and configure sampling sh
   const pageHandle = await driver.getWindowHandle();
   const handles = await driver.getAllWindowHandles();
   const picker = await activate();
-  assert.equal((await picker.findElements(By.css("button"))).length, 1);
+  assert.equal((await picker.findElements(By.css("button"))).length, 0);
   assert.equal((await picker.findElements(By.css(".settings"))).length, 0);
   await driver.actions().move({ x: 200, y: 200 }).contextClick().perform();
   await driver.wait(async () => (await driver.getAllWindowHandles()).length > handles.length, 5000);

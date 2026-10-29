@@ -36,22 +36,6 @@
 }
 .heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .heading strong { font-size: 12px; font-weight: 600; }
-button {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 7px;
-  background: #ffffff12;
-  color: #e2e8f0;
-  font: 20px/1 system-ui, sans-serif;
-  cursor: pointer;
-  pointer-events: auto;
-  touch-action: manipulation;
-}
-button:hover { background: #ffffff25; }
-button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
-.close { position: absolute; width: 40px; height: 40px; border: 1px solid #ffffff30; background: #17191ef5; box-shadow: 0 4px 16px #0003; }
 .magnifier { display: block; width: 156px; height: 156px; border-radius: 6px; image-rendering: pixelated; }
 .value { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .swatch { width: 24px; height: 24px; border: 1px solid #ffffff60; border-radius: 6px; }
@@ -81,6 +65,5 @@ button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
   pointer-events: none;
 }
 [hidden] { display: none !important; }
-@media (pointer: coarse) { button { width: 44px; height: 44px; } }
 @media (prefers-reduced-motion: no-preference) { .status { animation: appear 120ms ease-out; } }
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }

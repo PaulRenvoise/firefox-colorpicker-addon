@@ -70,6 +70,11 @@ async function pickerRoot() {
 }
 
 async function activate() {
+  await clickIcon();
+  return pickerRoot();
+}
+
+async function clickIcon() {
   // Subsequent tests dispatch Firefox's native action to avoid repeating the
   // menu test. This grants activeTab and fires the actual onClicked listener.
   await driver.setContext(firefox.Context.CHROME);
@@ -82,7 +87,6 @@ async function activate() {
   } finally {
     await driver.setContext(firefox.Context.CONTENT);
   }
-  return pickerRoot();
 }
 
 async function text(root, selector) {
@@ -168,10 +172,10 @@ test("Android finger drag follows the sample, and cancel preserves the clipboard
   await driver.get(url);
   const previous = await pastedValue();
   await driver.get(url);
-  let root = await activate();
-  await (await root.findElement(By.css("button"))).click();
+  await activate();
+  await clickIcon();
   assert.equal(await pastedValue(), previous);
-  root = await activate();
+  const root = await activate();
   const finger = new Pointer("drag finger", Pointer.Type.TOUCH);
   await driver.actions().insert(finger,
     finger.move({ x: 100, y: 200, duration: 0 }), finger.press(),

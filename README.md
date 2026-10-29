@@ -32,7 +32,7 @@ shows the copied value. The next activation clears the check. If Firefox cannot
 update the icon, a browser notification confirms the copy instead. A failed copy
 keeps the picker open so you can retry.
 
-**Cancel:** Escape, the × button, or activate the add-on again.
+**Cancel:** Escape or activate the add-on again.
 **Keyboard:** Alt+Shift+Y activates; arrow keys move one screenshot pixel; hold and
 release Space to sample with the same averaging behavior.
 
