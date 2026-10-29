@@ -89,7 +89,7 @@ export class Picker {
     this.updatePoint(event);
     // Recompute at release instead of relying on the most recent animation frame.
     const { color } = this.sample(performance.now());
-    this.cancelHold();
+    this.cancelHold(false);
     this.busy = true;
     try {
       const result = await browser.runtime.sendMessage({ type: "pipette:copy", hex: color.hex });
@@ -126,7 +126,7 @@ export class Picker {
     });
   }
 
-  cancelHold() {
+  cancelHold(redraw = true) {
     const pointerId = this.pointerId;
     this.pointerId = null;
     this.startedAt = null;
@@ -134,6 +134,7 @@ export class Picker {
     if (pointerId !== null && this.view.surface.hasPointerCapture(pointerId)) {
       this.view.surface.releasePointerCapture(pointerId);
     }
+    if (redraw && pointerId !== null && !this.closed) this.render();
   }
 
   keyDown(event) {

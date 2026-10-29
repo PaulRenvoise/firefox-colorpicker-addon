@@ -70,6 +70,14 @@ async function waitForText(root, selector, expected, timeout = 5000) {
   await driver.wait(async () => (await text(root, selector)).includes(expected), timeout);
 }
 
+async function waitForStep(root, step) {
+  const progress = await root.findElement(By.css(".progress"));
+  await driver.wait(async () =>
+    await progress.getAttribute("aria-valuemax") === "10" &&
+    await progress.getAttribute("aria-valuenow") === String(step), 12_000);
+  return progress;
+}
+
 async function waitForClosed() {
   await driver.wait(async () => (await driver.findElements(By.id("pipette-picker"))).length === 0, 5000);
 }
@@ -108,8 +116,19 @@ test("a long hold averages the selected diamond and caps at ten steps", async ()
   await driver.executeScript("paint(true)");
   const root = await activate();
   await driver.actions().move({ x: 200, y: 200 }).press().perform();
-  await waitForText(root, ".detail", "Step 10/10", 12_000);
-  assert.equal(await text(root, ".detail"), "221 pixels · Step 10/10");
+  const progress = await root.findElement(By.css(".progress"));
+  assert.equal(await progress.getAttribute("aria-valuemax"), "100");
+  await driver.wait(async () => Number(await progress.getAttribute("aria-valuenow")) > 0, 1000);
+  assert.equal((await root.findElements(By.css(".segment.filled"))).length, 0);
+  await screenshot("initial-hold-progress");
+  await waitForStep(root, 1);
+  assert.equal((await root.findElements(By.css(".progress.segmented .segment"))).length, 10);
+  assert.equal((await root.findElements(By.css(".segment.filled"))).length, 1);
+  assert.equal(await text(root, ".detail"), "Release to copy · Hold to average");
+  await screenshot("segmented-progress-step-1");
+  await waitForStep(root, 10);
+  assert.equal((await root.findElements(By.css(".segment.filled"))).length, 10);
+  assert.doesNotMatch(await text(root, ".panel"), /\d+ pixels|Step \d+\/\d+/);
   assert.equal(await text(root, ".hex"), "#FE0001");
   await screenshot("averaging");
   await driver.actions().release().perform();
@@ -197,7 +216,8 @@ test("touch hold expands the region and a cancelled touch never copies", async (
   let root = await activate();
   const finger = new Pointer("hold finger", Pointer.Type.TOUCH);
   await driver.actions().insert(finger, finger.move({ x: 200, y: 200, duration: 0 }), finger.press()).perform();
-  await waitForText(root, ".detail", "Step 10/10", 12_000);
+  await waitForStep(root, 10);
+  assert.equal((await root.findElements(By.css(".segment.filled"))).length, 10);
   assert.equal(await text(root, ".hex"), "#FE0001");
   await driver.actions().insert(finger, finger.release()).perform();
   await waitForText(root, ".status", "#FE0001 copied");
@@ -205,8 +225,12 @@ test("touch hold expands the region and a cancelled touch never copies", async (
   await driver.executeScript("paint()");
   root = await activate();
   await driver.actions().insert(finger, finger.move({ x: 200, y: 200, duration: 0 }), finger.press()).perform();
+  const progress = await waitForStep(root, 1);
   const surface = await root.findElement(By.css(".surface"));
   await driver.executeScript("arguments[0].dispatchEvent(new PointerEvent('pointercancel', {bubbles:true}))", surface);
+  assert.equal(await progress.getAttribute("aria-valuemax"), "100");
+  assert.equal(await progress.getAttribute("aria-valuenow"), "0");
+  assert.equal((await root.findElements(By.css(".segment.filled"))).length, 0);
   await driver.actions().insert(finger, finger.release()).perform();
   assert.equal(await (await root.findElement(By.css(".status"))).isDisplayed(), false);
   await (await root.findElement(By.css("button"))).click();

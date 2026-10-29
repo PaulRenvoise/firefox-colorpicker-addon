@@ -93,6 +93,13 @@ async function waitForText(root, selector, expected, timeout = 10_000) {
   await driver.wait(async () => (await text(root, selector)).includes(expected), timeout);
 }
 
+async function waitForStep(root, step) {
+  const progress = await root.findElement(By.css(".progress"));
+  await driver.wait(async () =>
+    await progress.getAttribute("aria-valuemax") === "10" &&
+    await progress.getAttribute("aria-valuenow") === String(step), 12_000);
+}
+
 async function pastedValue() {
   await driver.wait(async () => (await driver.findElements(By.id("pipette-picker"))).length === 0, 5000);
   await driver.executeScript(`
@@ -142,14 +149,15 @@ test("Android sustained touch averages exactly 221 pixels at step ten", async ()
   const root = await activate();
   const finger = new Pointer("hold finger", Pointer.Type.TOUCH);
   await driver.actions().insert(finger, finger.move({ x: 200, y: 200, duration: 0 }), finger.press()).perform();
-  await waitForText(root, ".detail", "Step 10/10", 12_000);
+  await waitForStep(root, 10);
   const viewport = await driver.executeScript("return {width:visualViewport.width,height:visualViewport.height}");
   const capturedWidth = Number(await (await root.findElement(By.css(".snapshot"))).getAttribute("width"));
   const capturedHeight = Number(await (await root.findElement(By.css(".snapshot"))).getAttribute("height"));
   assert.ok(Math.abs(capturedHeight - viewport.height * capturedWidth / viewport.width) <= 2,
     "Capture must exclude the collapsed-toolbar area");
   await writeFile("test-results/android-averaging.png", await driver.takeScreenshot(), "base64");
-  assert.equal(await text(root, ".detail"), "221 pixels · Step 10/10");
+  assert.equal((await root.findElements(By.css(".progress.segmented .segment.filled"))).length, 10);
+  assert.doesNotMatch(await text(root, ".panel"), /\d+ pixels|Step \d+\/\d+/);
   assert.equal(await text(root, ".hex"), "#FE0001");
   await driver.actions().insert(finger, finger.release()).perform();
   await waitForText(root, ".status", "#FE0001 copied");

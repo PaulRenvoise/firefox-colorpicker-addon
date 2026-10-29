@@ -59,11 +59,14 @@ export class PickerView {
     this.swatch = element("span", "swatch");
     this.hex = element("span", "hex");
     value.append(this.swatch, this.hex);
-    this.detail = element("p", "detail", "Release to copy · Hold to average");
-    const progress = element("div", "progress");
-    this.progress = element("span", "");
-    progress.append(this.progress);
-    this.panel.append(heading, this.magnifier, value, this.detail, progress);
+    const detail = element("p", "detail", "Release to copy · Hold to average");
+    this.progress = element("div", "progress");
+    this.progress.setAttribute("role", "progressbar");
+    this.progress.setAttribute("aria-valuemin", "0");
+    this.progressFill = element("span", "progress-fill");
+    this.progressSegments = Array.from({ length: MAX_RADIUS }, () => element("span", "segment"));
+    this.progress.append(this.progressFill, ...this.progressSegments);
+    this.panel.append(heading, this.magnifier, value, detail, this.progress);
     this.status = element("div", "status");
     this.status.setAttribute("role", "status");
     this.status.setAttribute("aria-live", "polite");
@@ -120,9 +123,18 @@ export class PickerView {
     context.restore();
     this.hex.textContent = color.hex;
     this.swatch.style.backgroundColor = color.hex;
-    this.detail.textContent = radius ? `${color.count} pixels · Step ${radius}/${MAX_RADIUS}` : "Release to copy · Hold to average";
-    this.progress.style.width = `${progress * 100}%`;
+    this.renderProgress(radius, progress);
     this.positionPanel(point, pointerType);
+  }
+
+  renderProgress(radius, progress) {
+    const segmented = progress >= 1;
+    this.progress.classList.toggle("segmented", segmented);
+    this.progress.setAttribute("aria-label", segmented ? "Averaging step" : "Hold to average");
+    this.progress.setAttribute("aria-valuemax", String(segmented ? MAX_RADIUS : 100));
+    this.progress.setAttribute("aria-valuenow", String(segmented ? radius : Math.round(progress * 100)));
+    this.progressFill.style.width = `${progress * 100}%`;
+    this.progressSegments.forEach((segment, index) => segment.classList.toggle("filled", index < radius));
   }
 
   positionPanel(point, pointerType) {

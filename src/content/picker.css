@@ -57,8 +57,13 @@ button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
 .swatch { width: 24px; height: 24px; border: 1px solid #ffffff60; border-radius: 6px; }
 .hex { font: 600 15px/1.4 ui-monospace, monospace; letter-spacing: 0.02em; }
 .detail { margin: 8px 0 0; color: #cbd5e1; font-size: 11px; }
-.progress { height: 2px; margin-top: 10px; border-radius: 2px; background: #ffffff20; overflow: hidden; }
-.progress span { display: block; height: 100%; width: 0; background: #7dd3fc; }
+.progress { display: flex; gap: 3px; height: 4px; margin-top: 10px; border-radius: 2px; background: #ffffff20; overflow: hidden; }
+.progress-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: #7dd3fc; }
+.segment { display: none; }
+.progress.segmented { background: transparent; }
+.segmented .progress-fill { display: none; }
+.segmented .segment { display: block; flex: 1; height: 100%; border-radius: 2px; background: #ffffff20; }
+.segmented .segment.filled { background: #7dd3fc; }
 .status {
   position: absolute;
   left: 50%;

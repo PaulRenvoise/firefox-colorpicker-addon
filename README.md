@@ -15,8 +15,10 @@ A normal click or tap samples one screenshot pixel. Hold for more than **1.5 sec
 to expand the region by one Manhattan-distance step every **750 ms**, up to **10
 steps** (221 pixels away from image edges). The first step includes the center and
 its four immediate neighbors. Diagonals enter on the second step because each
-diagonal costs two orthogonal moves. The preview outlines the selected region and
-shows its pixel count. Moving while holding moves the entire sampling region.
+diagonal costs two orthogonal moves. The preview outlines the selected region.
+The progress bar fills during the initial hold, then switches to ten segments,
+filling one per averaging step. Moving while holding moves the entire sampling
+region.
 
 On release, Pipette copies the arithmetic mean of the selected pixels' displayed
 RGB channels, rounded to the nearest integer. Near an edge it averages only pixels
