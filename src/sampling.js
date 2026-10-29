@@ -9,11 +9,13 @@ export function radiusForHold(elapsedMs, settings = DEFAULT_SETTINGS) {
 
 export function* selectedPixels(x, y, radius, width, height, shape = DEFAULT_SETTINGS.shape) {
   const limit = Math.max(0, Math.min(MAX_RADIUS, Math.floor(radius)));
+  // The disk fits the full (2 * limit + 1)-pixel diameter, out to cell edges.
+  const circleRadius = limit + 0.5;
   for (let dy = -limit; dy <= limit; dy++) {
     const py = y + dy;
     if (py < 0 || py >= height) continue;
     const span = shape === "rhombus" ? limit - Math.abs(dy)
-      : shape === "circle" ? Math.floor(Math.sqrt(limit * limit - dy * dy))
+      : shape === "circle" ? Math.floor(Math.sqrt(circleRadius * circleRadius - dy * dy))
       : limit;
     for (let dx = -span; dx <= span; dx++) {
       const px = x + dx;

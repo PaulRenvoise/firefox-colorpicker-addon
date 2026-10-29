@@ -444,7 +444,7 @@ test("settings autosave with debounce, validate input, and configure sampling sh
   await driver.executeAsyncScript("setTimeout(arguments[arguments.length - 1], 450)");
   assert.equal((await storedSettings()).initialHoldMs, 1500);
 
-  for (const [shape, expected] of [["square", "#FA0005"], ["circle", "#F60009"], ["rhombus", "#F5000A"]]) {
+  for (const [shape, expected] of [["square", "#FA0005"], ["circle", "#F80007"], ["rhombus", "#F5000A"]]) {
     await changeSettings(100, 1000, shape);
     await driver.navigate().refresh();
     await ready();

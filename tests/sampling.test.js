@@ -21,7 +21,7 @@ test("first expansion includes only the center and four orthogonal neighbors", (
 test("square, circle, and rhombus select exactly their geometric regions", () => {
   const contains = {
     square: (x, y, radius) => Math.max(Math.abs(x), Math.abs(y)) <= radius,
-    circle: (x, y, radius) => x * x + y * y <= radius * radius,
+    circle: (x, y, radius) => x * x + y * y <= (radius + 0.5) ** 2,
     rhombus: (x, y, radius) => Math.abs(x) + Math.abs(y) <= radius,
   };
   for (const [shape, inside] of Object.entries(contains)) {
@@ -37,8 +37,22 @@ test("square, circle, and rhombus select exactly their geometric regions", () =>
     }
   }
   assert.equal([...selectedPixels(10, 10, 10, 21, 21)].length, 441);
-  assert.equal([...selectedPixels(10, 10, 10, 21, 21, "circle")].length, 317);
+  assert.equal([...selectedPixels(10, 10, 10, 21, 21, "circle")].length, 349);
   assert.equal([...selectedPixels(10, 10, 10, 21, 21, "rhombus")].length, 221);
+});
+
+test("the circle fills its pixel diameter with rounded rows and clips only at image edges", () => {
+  const pixels = [...selectedPixels(3, 3, 3, 7, 7, "circle")];
+  assert.deepEqual(Array.from({ length: 7 }, (_, y) => pixels.filter(pixel => pixel.y === y).length), [3, 5, 7, 7, 7, 5, 3]);
+  const keys = new Set(pixels.map(({ x, y }) => `${x},${y}`));
+  for (const { x, y } of pixels) {
+    assert.ok(keys.has(`${6 - x},${y}`));
+    assert.ok(keys.has(`${x},${6 - y}`));
+    assert.ok(keys.has(`${y},${x}`));
+  }
+  assert.deepEqual([...selectedPixels(0, 0, 3, 4, 4, "circle")],
+    pixels.filter(({ x, y }) => x >= 3 && y >= 3).map(({ x, y }) => ({ x: x - 3, y: y - 3 })));
+  assert.deepEqual([...selectedPixels(0, 0, 0, 1, 1, "circle")], [{ x: 0, y: 0 }]);
 });
 
 test("custom hold times control each step and zero delay still caps at ten", () => {
@@ -58,7 +72,7 @@ test("averages only selected RGB pixels, with rounding and uppercase HEX", () =>
   image.data.set([0, 0, 255, 255], 4 * 4);
   assert.deepEqual(averageColor(image, 1, 1, 0), { hex: "#0000FF", count: 1 });
   assert.deepEqual(averageColor(image, 1, 1, 1), { hex: "#E3001C", count: 9 });
-  assert.deepEqual(averageColor(image, 1, 1, 1, "circle"), { hex: "#CC0033", count: 5 });
+  assert.deepEqual(averageColor(image, 1, 1, 1, "circle"), { hex: "#E3001C", count: 9 });
   assert.deepEqual(averageColor(image, 1, 1, 1, "rhombus"), { hex: "#CC0033", count: 5 });
   assert.deepEqual(averageColor(image, 1, 1, 2), { hex: "#E3001C", count: 9 });
 });

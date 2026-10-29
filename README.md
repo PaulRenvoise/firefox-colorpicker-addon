@@ -15,9 +15,10 @@ A normal click or tap samples one screenshot pixel. Hold for more than **1.5 sec
 to expand the region by one step every **750 ms**, up to **10 steps**. These are the
 default timings and can be changed in settings. The default **square** grows
 equally on all four sides, reaching 441 pixels at step ten away from image edges.
-**Circle** includes pixels within the current radius (317 at step ten), while
-**rhombus** uses orthogonal distance, with diagonals costing two moves (221 at step
-ten). The preview outlines exactly the pixels included in the average.
+**Circle** fits a disk to the same full pixel diameter and includes pixel centers
+inside it (349 at step ten). **Rhombus** uses orthogonal distance, with diagonals
+costing two moves (221 at step ten). The preview outlines exactly the pixels
+included in the average.
 The progress bar fills during the initial hold, then switches to ten segments,
 filling one per averaging step. Moving while holding moves the entire sampling
 region.
