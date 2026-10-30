@@ -4,6 +4,10 @@ A small color picker for Firefox desktop (140+) and Firefox for Android (142+).
 Click the add-on icon, hover over a color, and release a click to copy its uppercase
 HEX value. A magnified preview shows the exact pixels being sampled.
 
+![Pipette cursor and magnified preview sampling #FCA074 from a pink-to-yellow gradient](docs/images/pipette-gradient.png)
+
+Gradient: [WebGradients](https://webgradients.com/).
+
 On Android, open the Firefox menu, expand **Extensions**, and tap **Pick a color**
 (Pipette's icon), then touch and drag over the page to
 position the sample. Lift your finger to copy. The magnifier sits away from your
