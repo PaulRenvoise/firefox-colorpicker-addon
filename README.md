@@ -11,7 +11,7 @@ Gradient: [WebGradients](https://webgradients.com/).
 On Android, open the Firefox menu, expand **Extensions**, and tap **Pick a color**
 (Pipette's icon), then touch and drag over the page to
 position the sample. Lift your finger to copy. The magnifier sits away from your
-finger. Firefox for iOS does not support Firefox WebExtensions.
+finger.
 
 ## Hold to average
 
