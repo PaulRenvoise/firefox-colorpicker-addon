@@ -63,7 +63,7 @@ then run:
 pnpm start:android --adb-device DEVICE_ID --firefox-apk org.mozilla.firefox
 ```
 
-To distribute a build, follow [Mozilla's signing and distribution guide](https://extensionworkshop.com/documentation/publish/signing-and-distribution-overview/).
+To publish a signed GitHub Release, follow the [release guide](docs/releasing.md).
 
 ## Privacy
 

@@ -1,0 +1,94 @@
+name: Build and sign release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      NO_UPDATE_NOTIFIER: "1"
+    steps:
+      - name: Check out the release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+
+      - name: Check the release version
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { appendFile, readFile } from "node:fs/promises";
+          const manifest = JSON.parse(await readFile("extension/manifest.json", "utf8"));
+          const pkg = JSON.parse(await readFile("package.json", "utf8"));
+          assert.match(manifest.version, /^\d+\.\d+\.\d+$/, "Use a three-part release version");
+          assert.equal(pkg.version, manifest.version, "package.json and manifest.json versions must match");
+          assert.equal(process.env.RELEASE_TAG, `v${manifest.version}`, "The release tag must match the add-on version");
+          await appendFile(process.env.GITHUB_ENV, `VERSION=${manifest.version}\n`);
+          NODE
+
+      - name: Install dependencies
+        run: |
+          npm install --global pnpm@11.25.0
+          pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Build and validate the extension
+        run: pnpm lint
+
+      - name: Package matching source code
+        run: |
+          mkdir -p artifacts
+          git archive --format=zip --output="artifacts/pipette-${VERSION}-source.zip" HEAD
+
+      - name: Sign with Mozilla for self-distribution
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
+        run: |
+          if [[ -z "$WEB_EXT_API_KEY" || -z "$WEB_EXT_API_SECRET" ]]; then
+            echo "::error::Add WEB_EXT_API_KEY and WEB_EXT_API_SECRET to the repository's Actions secrets."
+            exit 1
+          fi
+          pnpm exec web-ext sign \
+            --source-dir dist \
+            --artifacts-dir artifacts/signed \
+            --channel unlisted \
+            --upload-source-code "artifacts/pipette-${VERSION}-source.zip" \
+            --approval-timeout 1800000 \
+            --no-input
+
+      - name: Attach the signed extension and source code
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          shopt -s nullglob
+          signed_files=(artifacts/signed/*.xpi)
+          if [[ ${#signed_files[@]} -ne 1 ]]; then
+            echo "::error::Expected exactly one signed XPI from Mozilla."
+            exit 1
+          fi
+          mv "${signed_files[0]}" "artifacts/pipette-${VERSION}.xpi"
+          gh release upload "$RELEASE_TAG" \
+            "artifacts/pipette-${VERSION}.xpi" \
+            "artifacts/pipette-${VERSION}-source.zip" \
+            --clobber
