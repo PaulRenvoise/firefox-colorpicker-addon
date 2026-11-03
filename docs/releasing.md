@@ -26,8 +26,8 @@ assets; no personal GitHub token is needed.
 ## Publish a version
 
 1. Set the same version in `package.json` and `extension/manifest.json`, then commit
-   and push. The first version is already `0.1.0`.
-2. On GitHub, create a release with the matching tag, such as `v0.1.0`, targeting
+   and push. The first version is already `1.0.0`.
+2. On GitHub, create a release with the matching tag, such as `v1.0.0`, targeting
    that commit. Publish the release. Saving a draft does not run the workflow.
 3. Follow **Actions → Build and sign release**. When it succeeds, the release has
    a signed `.xpi` ready to install on Firefox desktop or Android.

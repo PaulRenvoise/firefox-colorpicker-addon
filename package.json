@@ -1,6 +1,6 @@
 {
   "name": "firefox-colorpicker-addon",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "A Firefox color picker with a magnifier and expanding pixel averages.",

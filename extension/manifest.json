@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Pipette",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Pick a color, or hold to average a growing area. Release to copy its HEX value.",
   "permissions": ["activeTab", "scripting", "clipboardWrite", "notifications", "storage", "menus"],
   "background": { "scripts": ["background.js"] },
